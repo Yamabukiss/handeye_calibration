@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QDebug>
 #include <QKeyEvent>
+#include <Eigen/Dense>
 #include "sensor.h"
 #include "imageproc.h"
 
@@ -38,7 +39,7 @@ private:
 
     void disableWidget();
     inline void enableWidget();
-    cv::Mat svd(std::vector<cv::Point3f> _cam_points_vec, std::vector<cv::Point3f> _base_points_vec);
+    Eigen::Matrix4d svd(std::vector<cv::Point3f> _cam_points_vec, std::vector<cv::Point3f> _base_points_vec);
 
     Ui::HandEye *ui;
     bool init_scan_;

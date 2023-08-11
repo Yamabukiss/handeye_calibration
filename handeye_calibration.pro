@@ -26,6 +26,7 @@ FORMS += \
 
 INCLUDEPATH += D:\opencv\opencv\build\include
 INCLUDEPATH +=  $$PWD/SR_SdkDllx64
+INCLUDEPATH += D:\eigen\eigen-3.4.0
 
 LIBS += D:\opencv\opencv\build\x64\vc14\lib\opencv*.lib
 LIBS        +=  -L$$PWD/SR_SdkDllx64 \

@@ -251,40 +251,51 @@ void HandEye::on_pBtnConnect_on_single_4_clicked()
 
     auto handeye_mat = svd(cam_points_vec, base_points_vec);
 
-    QByteArray byte_array(reinterpret_cast<const char*>(handeye_mat.data), handeye_mat.total() * handeye_mat.elemSize());
+    QString mat_string;
 
-    QString result(byte_array);
+    for (int row = 0; row < 4; ++row)
+    {
+        for (int col = 0; col < 4; ++col)
+        {
+            mat_string += QString::number(handeye_mat(row, col)) + " ";
+        }
+        mat_string += "\n";
+    }
 
-    ui->textBrowser_log->append("手眼标定矩阵为:" + result);
+    ui->textBrowser_log->append("手眼标定矩阵为:" + mat_string);
 
 }
 
-cv::Mat HandEye::svd(std::vector<cv::Point3f> _cam_points_vec, std::vector<cv::Point3f> _base_points_vec)
+Eigen::Matrix4d HandEye::svd(std::vector<cv::Point3f> _cam_points_vec, std::vector<cv::Point3f> _base_points_vec)
 {
-    cv::Mat A = cv::Mat::zeros(3 * _cam_points_vec.size(), 12, CV_64F);
-    cv::Mat B = cv::Mat::zeros(3 * _cam_points_vec.size(), 1, CV_64F);
+    Eigen::MatrixXd A(4, _cam_points_vec.size());
+    Eigen::MatrixXd B(4, _base_points_vec.size());
 
-    for (size_t i = 0; i < _cam_points_vec.size(); ++i)
+    for (int i = 0; i < _cam_points_vec.size(); ++i)
     {
-        const cv::Point3f& camPoint = _cam_points_vec[i];
-        const cv::Point3f& basePoint = _base_points_vec[i];
-
-        A.at<double>(3 * i + 0, 0) = -camPoint.x;
-        A.at<double>(3 * i + 0, 1) = -camPoint.y;
-        A.at<double>(3 * i + 0, 2) = -camPoint.z;
-        A.at<double>(3 * i + 0, 3) = -1;
-        A.at<double>(3 * i + 0, 9) = camPoint.x * basePoint.x;
-        A.at<double>(3 * i + 0, 10) = camPoint.y * basePoint.x;
-        A.at<double>(3 * i + 0, 11) = camPoint.z * basePoint.x;
-
-        B.at<double>(3 * i + 0, 0) = basePoint.x;
-        B.at<double>(3 * i + 1, 0) = basePoint.y;
-        B.at<double>(3 * i + 2, 0) = basePoint.z;
+        A.col(i) << _cam_points_vec[i].x, _cam_points_vec[i].y, _cam_points_vec[i].z, 1.0;
+        B.col(i) << _base_points_vec[i].x, _base_points_vec[i].y, _base_points_vec[i].z, 1.0;
     }
 
-    cv::Mat handeye_mat = A.inv(cv::DECOMP_SVD) * B;
+    Eigen::Vector4d mA = A.rowwise().mean();
+    Eigen::Vector4d mB = B.rowwise().mean();
 
-    handeye_mat = handeye_mat.reshape(1, 4);
+    A = A.colwise() - mA;
+    B = B.colwise() - mB;
 
-    return handeye_mat;
+    Eigen::Matrix4d H = A * B.transpose();
+
+    Eigen::JacobiSVD<Eigen::Matrix4d> svd(H, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Eigen::Matrix4d U = svd.matrixU();
+    Eigen::Matrix4d V = svd.matrixV();
+
+    Eigen::Matrix4d R = V * U.transpose();
+
+    Eigen::Vector4d t = mB - R * mA;
+
+    Eigen::Matrix4d transformation_mat = Eigen::Matrix4d::Identity();
+    transformation_mat.block(0, 0, 3, 3) = R.block(0, 0, 3, 3);
+    transformation_mat.block(0, 3, 3, 1) = t.block(0, 0, 3, 1);
+
+    return transformation_mat;
 }
