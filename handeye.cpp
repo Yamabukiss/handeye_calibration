@@ -291,6 +291,12 @@ Eigen::Matrix4d HandEye::svd(std::vector<cv::Point3f> _cam_points_vec, std::vect
 
     Eigen::Matrix4d R = V * U.transpose();
 
+    double det_R = R.determinant();
+    if (det_R < 0) {
+        V.col(3) *= -1;
+        R = V * U.transpose();
+    }
+
     Eigen::Vector4d t = mB - R * mA;
 
     Eigen::Matrix4d transformation_mat = Eigen::Matrix4d::Identity();
