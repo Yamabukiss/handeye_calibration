@@ -202,8 +202,7 @@ bool Sensor::initBatch()
     }
 
     // start display thread
-    call_one_times_ptr_->startImageDisp();
-
+    call_one_times_ptr_->startImageDisp();    
 
     return true;
 }
@@ -277,6 +276,9 @@ QImage Sensor::BatchDataShow(int *_BatchData,
     unsigned char* BatchImage = new unsigned char[dwDataSize];
     memset(BatchImage, 0, sizeof(BatchImage));
 
+    std::shared_ptr<unsigned char> tmp_ptr(BatchImage);
+    height_batch_ptr_ = std::move(tmp_ptr);
+
     for(int i = 0; i < imgH; i ++)
     {
         TmpX = i * _yscale * img_w;
@@ -298,7 +300,7 @@ QImage Sensor::BatchDataShow(int *_BatchData,
 
     //转成图像显示
     QImage heightImage = QImage(BatchImage, imgW, imgH, QImage::Format_Indexed8)
-                             .scaled(QSize(_scaleW, _scaleH), Qt::AspectRatioMode(), Qt::SmoothTransformation);
+                             .scaled(QSize(_scaleW, _scaleH));
 
 
 //    QVector<QRgb> grayTable;
@@ -308,11 +310,11 @@ QImage Sensor::BatchDataShow(int *_BatchData,
 //    }
 //    heightImage.setColorTable(grayTable);
 
-    if(BatchImage)
-    {
-        delete[] BatchImage;
-        BatchImage = NULL;
-    }
+//    if(BatchImage)
+//    {
+//        delete[] BatchImage;
+//        BatchImage = NULL;
+//    }
     return heightImage;
 }
 
@@ -326,7 +328,6 @@ QImage Sensor::GrayDataShow(unsigned char* _grayData,
 {
     if (_grayData == NULL || img_h == 0 || img_w == 0)
     {
-        qDebug() << img_h;
         return QImage();
     }
 
@@ -362,6 +363,9 @@ QImage Sensor::GrayDataShow(unsigned char* _grayData,
     unsigned char* BatchImage = new unsigned char[TT * imgH];
     memset(BatchImage, 0, sizeof(BatchImage));
 
+    std::shared_ptr<unsigned char> tmp_ptr(BatchImage);
+    gray_batch_ptr_ = std::move(tmp_ptr);
+
     for(int i = 0; i < imgH; i ++)
     {
         TmpX = i * _yscale * img_w;
@@ -373,21 +377,21 @@ QImage Sensor::GrayDataShow(unsigned char* _grayData,
     }
 
     //转成图像显示
-    QImage gray_image = QImage(BatchImage, imgW, imgH, QImage::Format_Indexed8)
-                             .scaled(QSize(_scaleW, _scaleH), Qt::AspectRatioMode(), Qt::SmoothTransformation);
+    QImage heightImage = QImage(BatchImage, imgW, imgH, QImage::Format_Indexed8).scaled(QSize(_scaleW, _scaleH));
+
     QVector<QRgb> grayTable;
     for(int i = 0; i < 256; i++)
     {
         grayTable.push_back(qRgb(i,i,i));
     }
-    gray_image.setColorTable(grayTable);
+    heightImage.setColorTable(grayTable);
 
-    if(BatchImage)
-    {
-        delete[] BatchImage;
-        BatchImage = NULL;
-    }
-    return gray_image;
+//    if(BatchImage)
+//    {
+//        delete[] BatchImage;
+//        BatchImage = NULL;
+//    }
+    return heightImage;
 }
 
 void Sensor::InitCallOneTimesBeforeDisConnect()

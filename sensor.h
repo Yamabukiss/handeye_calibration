@@ -9,6 +9,7 @@
 #include <QTime>
 #include <QCoreApplication>
 #include <QDebug>
+#include <memory>
 #include "CallOneTimes.h"
 
 class Sensor : public QObject
@@ -22,6 +23,7 @@ public:
     bool singleBatch();
     void InitCallOneTimesBeforeDisConnect();
     void InitConfigBeforeDisConnect();
+
     void ethenetDisconnect();
     QImage BatchDataShow(int *_BatchData,
                        double max_height,
@@ -51,8 +53,9 @@ private:
     int getEncoderParameters();
     bool setEncoderParameters();
     void getHeightUpperLower(double& _upper, double& _lower);
-
     int device_id_;
+    std::shared_ptr<unsigned char> gray_batch_ptr_{};
+    std::shared_ptr<unsigned char> height_batch_ptr_{};
 
 signals:
 

@@ -17,29 +17,17 @@ HandEye::HandEye(QWidget *parent)
 
 }
 
-HandEye::~HandEye()
-{
-    delete ui;
-}
-
-// TODO: bug exist when it has connected
 void HandEye::on_pBtnConnect_on_connect_clicked()
 {
     bool ret = sensor_ptr_->ethenetConnect();
 
     if(ret)
     {
-        QTime current_time = QTime::currentTime();
-        QString log_text = "[INFO] " + QString::number(current_time.hour()) + ":" + QString::number(current_time.minute())
-                           + ":" + QString::number(current_time.second()) + " 连接成功";
-        ui->textBrowser_log->append(log_text);
+        ui->textBrowser_log->append("连接成功");
     }
     else
     {
-        QTime current_time = QTime::currentTime();
-        QString log_text = "[ERROR] " + QString::number(current_time.hour()) + ":" + QString::number(current_time.minute())
-                           + ":" + QString::number(current_time.second()) + " 连接失败";
-        ui->textBrowser_log->append(log_text);
+        ui->textBrowser_log->append("连接失败");
     }
 
 }
@@ -47,6 +35,7 @@ void HandEye::on_pBtnConnect_on_connect_clicked()
 
 void HandEye::on_pBtnConnect_on_single_clicked()
 {
+    ui->label_gray->clear();
     bool ret = false;
     if (init_scan_)
     {
@@ -59,18 +48,11 @@ void HandEye::on_pBtnConnect_on_single_clicked()
 
     if(!ret)
     {
-        auto text = QString("执行扫图失败，返回值:%1").arg(ret);
-        QTime current_time = QTime::currentTime();
-        QString log_text = "[ERROR] " + QString::number(current_time.hour()) + ":" + QString::number(current_time.minute())
-                           + ":" + QString::number(current_time.second()) + " " + text;
-        ui->textBrowser_log->append(log_text);
+        ui->textBrowser_log->append("执行扫图失败");
     }
     else
     {
-        QTime current_time = QTime::currentTime();
-        QString log_text = "[INFO] " + QString::number(current_time.hour()) + ":" + QString::number(current_time.minute())
-                           + ":" + QString::number(current_time.second()) + " 执行扫图成功";
-        ui->textBrowser_log->append(log_text);
+        ui->textBrowser_log->append("执行扫图成功");
     }
 
 }
@@ -104,8 +86,6 @@ void HandEye::keyPressEvent(QKeyEvent *event)
 inline void HandEye::enableWidget()
 {
     ui->pBtnConnect_on_single->setEnabled(true);
-    ui->pBtnConnect_on_single_2->setEnabled(true);
-    ui->pBtnConnect_on_single_3->setEnabled(true);
 
     if (cam_points_vecs_.size() >= 5)
         ui->pBtnConnect_on_single_4->setEnabled(true);
@@ -114,13 +94,12 @@ inline void HandEye::enableWidget()
 inline void HandEye::disableWidget()
 {
     ui->pBtnConnect_on_single->setEnabled(false);
-    ui->pBtnConnect_on_single_2->setEnabled(false);
-    ui->pBtnConnect_on_single_3->setEnabled(false);
     ui->pBtnConnect_on_single_4->setEnabled(false);
 }
 
 void HandEye::showImage(int _width, int _height)
 {
+    ui->textBrowser_log->append("请等待图像处理...");
     //scale size
     int mScaleW = ui->label_gray->width();
     int mScaleH = ui->label_gray->height();
@@ -128,6 +107,15 @@ void HandEye::showImage(int _width, int _height)
     int mYscale = int(double(_height) / mScaleH);
 
     int mCamId = 0;
+
+    auto gray_image = sensor_ptr_->GrayDataShow(sensor_ptr_->call_one_times_ptr_->getIntensityData(mCamId),
+                                                _width,
+                                                _height,
+                                                mXscale,
+                                                mYscale,
+                                                mScaleW,
+                                                mScaleH);
+
 
     auto height_image = sensor_ptr_->BatchDataShow(sensor_ptr_->call_one_times_ptr_->getBatchData(mCamId),
                   sensor_ptr_->dheight_upper_,
@@ -139,15 +127,6 @@ void HandEye::showImage(int _width, int _height)
                   mYscale,
                   mScaleW,
                   mScaleH);
-
-
-    auto gray_image = sensor_ptr_->GrayDataShow(sensor_ptr_->call_one_times_ptr_->getIntensityData(mCamId),
-                                       _width,
-                                       _height,
-                                       mXscale,
-                                       mYscale,
-                                       mScaleW,
-                                       mScaleH);
 
     if (height_image.isNull() || gray_image.isNull())
     {
@@ -192,14 +171,6 @@ void HandEye::showImage(int _width, int _height)
     {
         ui->textBrowser_log->append("寻找角点失败，请重新扫图");
     }
-
-    ui->textBrowser_log->append("当前点集总数:" + QString::number(cam_points_vecs_.size()));
-}
-
-
-void HandEye::on_pBtnConnect_on_single_2_clicked()
-{
-    sensor_ptr_->InitConfigBeforeDisConnect();
 }
 
 
@@ -229,12 +200,13 @@ void HandEye::on_pBtnConnect_on_single_3_clicked()
         }
     }
     int vec_size = base_points_vec.size();
-    cam_points_vecs_[-1].resize(vec_size);
+    cam_points_vecs_[cam_points_vecs_.size() - 1].resize(vec_size);
     base_points_vecs_.emplace_back(base_points_vec);
 
     ui->textBrowser_log->append("输入成功, 当前点集数为:" + QString::number(cam_points_vecs_.size()));
     ui->tableWidget->clear();
     enableWidget();
+    ui->tableWidget->setRowCount(1);
 }
 
 
@@ -304,4 +276,11 @@ Eigen::Matrix4d HandEye::svd(std::vector<cv::Point3f> _cam_points_vec, std::vect
     transformation_mat.block(0, 3, 3, 1) = t.block(0, 0, 3, 1);
 
     return transformation_mat;
+}
+
+HandEye::~HandEye()
+{
+    delete ui;
+    delete sensor_ptr_;
+    delete image_proc_ptr_;
 }

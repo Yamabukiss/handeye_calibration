@@ -29,8 +29,6 @@ private slots:
 
     void on_pBtnConnect_on_single_clicked();
 
-    void on_pBtnConnect_on_single_2_clicked();
-
     void on_pBtnConnect_on_single_3_clicked();
 
     void on_pBtnConnect_on_single_4_clicked();

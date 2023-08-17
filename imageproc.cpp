@@ -32,18 +32,20 @@ std::pair<bool, std::vector<cv::Point2f>> ImageProc::findCorner(cv::Mat &image)
 {
     cv::Size pattern_size(8, 11);
     std::vector<cv::Point2f> corners_vec;
+    cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
     bool ret = cv::findChessboardCorners(image, pattern_size, corners_vec);
-
-    refineCorner(image, corners_vec);
-    cv::drawChessboardCorners(image, pattern_size, corners_vec, ret);
-    int count = 1;
-    for (const auto &point : corners_vec)
+    if (ret)
     {
-        cv::Point point_i(static_cast<int>(point.x), static_cast<int>(point.y));
-        cv::putText(image, std::to_string(count), point_i, cv::FONT_HERSHEY_SIMPLEX, 2, cv::Scalar(0, 0, 255), 2);
-        count++;
+        refineCorner(image, corners_vec);
+        cv::drawChessboardCorners(image, pattern_size, corners_vec, ret);
+        int count = 1;
+        for (const auto &point : corners_vec)
+        {
+            cv::Point point_i(static_cast<int>(point.x), static_cast<int>(point.y));
+            cv::putText(image, std::to_string(count), point_i, cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 1);
+            count++;
+        }
     }
-
 
     return {ret, corners_vec};
 }
@@ -51,6 +53,5 @@ std::pair<bool, std::vector<cv::Point2f>> ImageProc::findCorner(cv::Mat &image)
 void ImageProc::refineCorner(const cv::Mat &image, std::vector<cv::Point2f> &corners_vec)
 {
     auto tmp_image = image;
-    cv::cvtColor(tmp_image, tmp_image, cv::COLOR_BGR2GRAY);
     cv::find4QuadCornerSubpix(tmp_image, corners_vec, cv::Size(5, 5));
 }

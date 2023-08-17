@@ -109,43 +109,27 @@
      <rect>
       <x>10</x>
       <y>0</y>
-      <width>640</width>
-      <height>480</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>TextLabel</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pBtnConnect_on_single_2">
-    <property name="geometry">
-     <rect>
-      <x>960</x>
-      <y>100</y>
-      <width>121</width>
-      <height>61</height>
+      <width>780</width>
+      <height>500</height>
      </rect>
     </property>
     <property name="minimumSize">
      <size>
-      <width>101</width>
-      <height>41</height>
+      <width>780</width>
+      <height>500</height>
      </size>
     </property>
     <property name="maximumSize">
      <size>
       <width>55555</width>
-      <height>55555</height>
+      <height>555555</height>
      </size>
     </property>
-    <property name="font">
-     <font>
-      <family>黑体</family>
-      <pointsize>11</pointsize>
-     </font>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(4, 4, 4);</string>
     </property>
     <property name="text">
-     <string>停止扫图</string>
+     <string/>
     </property>
    </widget>
    <widget class="QScrollArea" name="scrollArea">
