@@ -35,10 +35,10 @@
    <widget class="QTextBrowser" name="textBrowser_log">
     <property name="geometry">
      <rect>
-      <x>800</x>
+      <x>810</x>
       <y>170</y>
-      <width>391</width>
-      <height>192</height>
+      <width>381</width>
+      <height>191</height>
      </rect>
     </property>
    </widget>
@@ -107,15 +107,15 @@
    <widget class="QLabel" name="label_gray">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>0</x>
       <y>0</y>
-      <width>780</width>
+      <width>800</width>
       <height>500</height>
      </rect>
     </property>
     <property name="minimumSize">
      <size>
-      <width>780</width>
+      <width>800</width>
       <height>500</height>
      </size>
     </property>
@@ -156,7 +156,7 @@
      <widget class="QTableWidget" name="tableWidget">
       <property name="geometry">
        <rect>
-        <x>0</x>
+        <x>10</x>
         <y>0</y>
         <width>391</width>
         <height>192</height>
@@ -184,7 +184,7 @@
    <widget class="QPushButton" name="pBtnConnect_on_single_3">
     <property name="geometry">
      <rect>
-      <x>850</x>
+      <x>830</x>
       <y>580</y>
       <width>121</width>
       <height>61</height>
@@ -215,7 +215,7 @@
    <widget class="QPushButton" name="pBtnConnect_on_single_4">
     <property name="geometry">
      <rect>
-      <x>1030</x>
+      <x>1050</x>
       <y>580</y>
       <width>121</width>
       <height>61</height>
@@ -305,7 +305,7 @@
      <string>更新参数</string>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>30</x>

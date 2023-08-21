@@ -207,7 +207,6 @@ void CallOneTimes::exitImageDiap()
     }
 }
 
-
 void CallOneTimes::setBatchFinishFlagInit()
 {
     mImgDispT->bBatchFinish = false;

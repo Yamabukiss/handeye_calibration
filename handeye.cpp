@@ -4,16 +4,10 @@
 
 HandEye::HandEye(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::HandEye), mXscale_(0), mYscale_(0), init_scan_(true), sensor_ptr_(new Sensor), image_proc_ptr_(new ImageProc)
+    , ui(new Ui::HandEye), mXscale_(0), mYscale_(0), init_scan_(true),
+    sensor_ptr_(new Sensor), image_proc_ptr_(new ImageProc)
 {
     ui->setupUi(this);
-
-    parameters_path_ = QCoreApplication::applicationDirPath()+"/config/parameters.json";
-    QFile file(parameters_path_);
-    if (!file.open(QIODevice::ReadOnly))
-    {
-        ui->textBrowser_log->append("参数文件读取失败");
-    }
 
     QStringList horizontal_headers;
     horizontal_headers << "x" << "y" << "z";
@@ -21,7 +15,15 @@ HandEye::HandEye(QWidget *parent)
 
     connect(sensor_ptr_->call_one_times_ptr_, &CallOneTimes::SignalDataShow,
             this, &HandEye::showImage);
-    ui->pBtnConnect_on_single_4->setDisabled(false);
+
+    ui->pBtnConnect_on_single_4->setEnabled(false);
+
+    parameters_path_ = QCoreApplication::applicationDirPath()+"/config/parameters.json";
+    QFile file(parameters_path_);
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        ui->textBrowser_log->append("参数文件读取失败");
+    }
 
     QByteArray json_data = file.readAll();
     QJsonDocument json_document = QJsonDocument::fromJson(json_data);
@@ -64,11 +66,11 @@ void HandEye::on_pBtnConnect_on_connect_clicked()
 
 }
 
-
 void HandEye::on_pBtnConnect_on_single_clicked()
 {
     ui->label_gray->clear();
     bool ret = false;
+
     if (init_scan_)
     {
         ret = sensor_ptr_->initBatch();
@@ -79,14 +81,9 @@ void HandEye::on_pBtnConnect_on_single_clicked()
         ret = sensor_ptr_->singleBatch();
 
     if(!ret)
-    {
         ui->textBrowser_log->append("执行扫图失败");
-    }
     else
-    {
         ui->textBrowser_log->append("执行扫图成功");
-    }
-
 }
 
 void HandEye::keyPressEvent(QKeyEvent *event)
@@ -115,23 +112,26 @@ void HandEye::keyPressEvent(QKeyEvent *event)
     }
 };
 
-inline void HandEye::enableWidget()
+void HandEye::enableWidget()
 {
     ui->pBtnConnect_on_single->setEnabled(true);
 
-    int count = 0;
+    static size_t count = 0;
 
-    for (const auto& innerVector : cam_points_vecs_)
-        count += innerVector.size();
+    size_t vec_size = base_points_vecs_.size();
 
-    if (count >= 5)
+    count += base_points_vecs_[vec_size - static_cast<size_t>(1)].size();
+
+    if (!ui->pBtnConnect_on_single_4->isEnabled() && count >= 5 )
         ui->pBtnConnect_on_single_4->setEnabled(true);
 }
 
 inline void HandEye::disableWidget()
 {
     ui->pBtnConnect_on_single->setEnabled(false);
-    ui->pBtnConnect_on_single_4->setEnabled(false);
+
+    if (!ui->pBtnConnect_on_single_4->isEnabled())
+        ui->pBtnConnect_on_single_4->setEnabled(false);
 }
 
 void HandEye::showImage(int _width, int _height)
@@ -181,38 +181,24 @@ void HandEye::showImage(int _width, int _height)
 
     cv::Mat mat = image_proc_ptr_->pixmapToCvMat(gray_pixmap);
 
-    tmp_mat_ = mat;
+    tmp_mat_ = mat.clone();
     tmp_height_ = height_image;
 
     auto circles = image_proc_ptr_->getCircle(mat, dp_, minDist_, param1_, param2_, minRadius_, maxRadius_);
+
+    if (circles.empty())
+    {
+        ui->textBrowser_log->append("没有找到点，请重新扫图");
+        ui->label_gray->setPixmap(gray_pixmap);
+        return;
+    }
+
     judgeAndInputBase(mat, circles);
 }
 
-bool HandEye::showMsgBox()
+void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_circle)
 {
-    QMessageBox msg_box;
-    QFont font;
-    font.setFamily("黑体");
-    font.setPointSize(11);
-
-    msg_box.setFont(font);
-
-    msg_box.setWindowTitle("确认点位");
-    msg_box.setText("是否寻找到了点位？");
-
-    msg_box.addButton("否", QMessageBox::RejectRole);
-    QPushButton *okButton = msg_box.addButton("是", QMessageBox::AcceptRole);
-
-    msg_box.exec();
-
-    bool judge = msg_box.clickedButton() == okButton;
-
-    return judge;
-}
-
-void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3f> &_circle)
-{
-    for (size_t i = 0; i < _circle.size(); ++i)
+    for (size_t i = 0; i < _circle.size(); i++)
     {
         cv::Point center(cvRound(_circle[i][0]), cvRound(_circle[i][1]));
         int radius = cvRound(_circle[i][2]);
@@ -223,49 +209,33 @@ void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3f> &_ci
     auto drawed_pixmap = image_proc_ptr_->matToPixmap(_mat);
     ui->label_gray->setPixmap(drawed_pixmap);
 
-    bool judge = showMsgBox();
-
-    if (!_circle.empty() && judge)
+    ui->textBrowser_log->append("寻找成功 请按照顺序输入任意数量base的xyz坐标");
+    std::vector<cv::Point3d> cam_points_vec;
+    for (const auto &corner : _circle)
     {
-        ui->textBrowser_log->append("寻找成功 请按照顺序输入任意数量base的xyz坐标");
-        std::vector<cv::Point3f> cam_points_vec;
-        for (const auto &corner : _circle)
-        {
-            float x = corner[0];
-            float y = corner[1];
-            unsigned char gray_value = tmp_height_.pixel(x, y);
-            float z = static_cast<float>(gray_value) / sensor_ptr_->fscale_ + sensor_ptr_->dheight_lower_;
-            cv::Point3f point_3f(x * mXscale_ * sensor_ptr_->call_one_times_ptr_->mXinterVal,
-                                 y * mYscale_ * sensor_ptr_->call_one_times_ptr_->mYinterVal,
-                                 z);
+        double x = corner[0];
+        double y = corner[1];
+        unsigned char gray_value = tmp_height_.pixel(x, y);
+        double z = static_cast<double>(gray_value) / sensor_ptr_->fscale_ + sensor_ptr_->dheight_lower_;
 
-            cam_points_vec.emplace_back(point_3f);
-            ui->textBrowser_log->append(QString("%1, %2, %3").arg(x).arg(y).arg(z));
-        }
+        x = x * mXscale_ * sensor_ptr_->call_one_times_ptr_->mXinterVal;
+        y = y * mYscale_ * sensor_ptr_->call_one_times_ptr_->mYinterVal;
 
-        cam_points_vecs_.emplace_back(cam_points_vec);
-        disableWidget();
+        cv::Point3d point_3d(x, y, z);
+
+        cam_points_vec.emplace_back(point_3d);
+        ui->textBrowser_log->append(QString("%1, %2, %3").arg(x).arg(y).arg(z));
     }
 
-    else
-    {
-        ui->textBrowser_log->append("寻找失败，请重新扫图或调整参数");
-        ui->tableWidget->clear();
-        ui->tableWidget->setRowCount(1);
-    }
+    cam_points_vecs_.emplace_back(cam_points_vec);
 
+    disableWidget();
 }
-
 
 void HandEye::on_pBtnConnect_on_single_3_clicked()
 {
-    std::vector<cv::Point3f> base_points_vec;
+    std::vector<cv::Point3d> base_points_vec;
     int row_size = ui->tableWidget->rowCount();
-    if (row_size == 0)
-    {
-        ui->textBrowser_log->append("您未输入任何有效数据");
-        return;
-    }
 
     for (int row = 0; row < row_size; row++)
     {
@@ -274,29 +244,31 @@ void HandEye::on_pBtnConnect_on_single_3_clicked()
             float x = ui->tableWidget->item(row, 0)->text().toFloat();
             float y = ui->tableWidget->item(row, 1)->text().toFloat();
             float z = ui->tableWidget->item(row, 2)->text().toFloat();
-            base_points_vec.emplace_back(cv::Point3f(x, y, z));
+            base_points_vec.emplace_back(cv::Point3d(x, y, z));
         }
-        catch (std::exception e)
+        catch (std::invalid_argument e)
         {
             ui->textBrowser_log->append("未完全输入xyz三列数据，请重新输入");
             return;
         }
+
     }
-    int vec_size = base_points_vec.size();
-    cam_points_vecs_[cam_points_vecs_.size() - 1].resize(vec_size);
-    base_points_vecs_.emplace_back(base_points_vec);
+        size_t vec_size = base_points_vec.size();
+        cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].resize(vec_size);
+        base_points_vecs_.emplace_back(base_points_vec);
 
-    ui->textBrowser_log->append("输入成功, 当前点集数为:" + QString::number(cam_points_vecs_.size()));
-    ui->tableWidget->clear();
-    enableWidget();
-    ui->tableWidget->setRowCount(1);
+        size_t points_count = 0;
+        for (const auto &vec : cam_points_vecs_)
+            points_count += vec.size();
+
+        ui->textBrowser_log->append("输入成功, 当前总点数为:" + QString::number(points_count));
+        resetTableWidget();
 }
-
 
 void HandEye::on_pBtnConnect_on_single_4_clicked()
 {
-    std::vector<cv::Point3f> cam_points_vec;
-    std::vector<cv::Point3f> base_points_vec;
+    std::vector<cv::Point3d> cam_points_vec;
+    std::vector<cv::Point3d> base_points_vec;
 
     for (const auto &point_vec : cam_points_vecs_)
         cam_points_vec.insert(cam_points_vec.end(), point_vec.begin(), point_vec.end());
@@ -310,18 +282,25 @@ void HandEye::on_pBtnConnect_on_single_4_clicked()
 
     for (int row = 0; row < 4; ++row)
     {
+        mat_string += "[";
+
         for (int col = 0; col < 4; ++col)
         {
-            mat_string += QString::number(handeye_mat(row, col)) + " ";
+            if (col != 3)
+                mat_string +=  QString::number(handeye_mat(row, col)) + ",";
+            else
+                mat_string +=  QString::number(handeye_mat(row, col));
         }
+
+        mat_string += "]";
+
         mat_string += "\n";
     }
 
     ui->textBrowser_log->append("手眼标定矩阵为:" + mat_string);
-
 }
 
-Eigen::Matrix4d HandEye::svd(std::vector<cv::Point3f> _cam_points_vec, std::vector<cv::Point3f> _base_points_vec)
+Eigen::Matrix4d HandEye::svd(std::vector<cv::Point3d> _cam_points_vec, std::vector<cv::Point3d> _base_points_vec)
 {
     Eigen::MatrixXd A(4, _cam_points_vec.size());
     Eigen::MatrixXd B(4, _base_points_vec.size());
@@ -361,13 +340,6 @@ Eigen::Matrix4d HandEye::svd(std::vector<cv::Point3f> _cam_points_vec, std::vect
     return transformation_mat;
 }
 
-HandEye::~HandEye()
-{
-    delete ui;
-    delete sensor_ptr_;
-    delete image_proc_ptr_;
-}
-
 void HandEye::on_pBtnConnect_on_connect_2_clicked()
 {
     QFile file(parameters_path_);
@@ -395,7 +367,6 @@ void HandEye::on_pBtnConnect_on_connect_2_clicked()
     newfile.write(jsonData);
 }
 
-
 void HandEye::on_lineEdit_textEdited(const QString &arg1)
 {
     dp_ = arg1.toInt();
@@ -406,7 +377,6 @@ void HandEye::on_lineEdit_2_textEdited(const QString &arg1)
 {
     minDist_ = arg1.toInt();
 }
-
 
 void HandEye::on_lineEdit_3_textEdited(const QString &arg1)
 {
@@ -425,17 +395,22 @@ void HandEye::on_lineEdit_5_textEdited(const QString &arg1)
     minRadius_ = arg1.toInt();
 }
 
-
 void HandEye::on_lineEdit_6_textEdited(const QString &arg1)
 {
     maxRadius_ = arg1.toInt();
 }
 
-
 void HandEye::on_pBtnConnect_on_connect_3_clicked()
 {
     cv::Mat mat = tmp_mat_.clone();
     auto circles = image_proc_ptr_->getCircle(mat, dp_, minDist_, param1_, param2_, minRadius_, maxRadius_);
+    if (circles.empty())
+    {
+        ui->textBrowser_log->append("没有找到点，请重新扫图");
+        return;
+    }
+
+    cam_points_vecs_.pop_back();
     judgeAndInputBase(mat, circles);
 }
 
@@ -462,7 +437,6 @@ bool HandEye::closeInquiry()
         return false;
     else
         return false;
-
 }
 
 void HandEye::closeEvent(QCloseEvent* event)
@@ -471,4 +445,19 @@ void HandEye::closeEvent(QCloseEvent* event)
         on_pBtnConnect_on_connect_2_clicked();
     event->accept();
 }
+
+void HandEye::resetTableWidget()
+{
+    ui->tableWidget->clear();
+    ui->tableWidget->setRowCount(1);
+    enableWidget();
+}
+
+HandEye::~HandEye()
+{
+    delete ui;
+    delete sensor_ptr_;
+    delete image_proc_ptr_;
+}
+
 

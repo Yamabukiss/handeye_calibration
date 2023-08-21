@@ -7,7 +7,6 @@ Sensor::Sensor(QObject *parent)
     call_one_times_ptr_->device_id_ = device_id_;
 }
 
-
 int Sensor::getEncoderParameters()
 {
     int type = 0x10;
@@ -150,7 +149,6 @@ void Sensor::getHeightUpperLower(double& _upper, double& _lower)
     _upper = 0;
     _lower = -200;
 }
-
 
 bool Sensor::ethenetConnect()
 {

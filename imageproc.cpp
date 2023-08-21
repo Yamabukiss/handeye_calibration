@@ -56,10 +56,10 @@ void ImageProc::refineCorner(const cv::Mat &image, std::vector<cv::Point2f> &cor
     cv::find4QuadCornerSubpix(tmp_image, corners_vec, cv::Size(5, 5));
 }
 
-std::vector<cv::Vec3f> ImageProc::getCircle(cv::Mat image, int _dp, int _minDist, int _param1,
+std::vector<cv::Vec3d> ImageProc::getCircle(cv::Mat image, int _dp, int _minDist, int _param1,
                           int _param2, int _minRadius, int _maxRadius)
 {
-    std::vector<cv::Vec3f> circles;
+    std::vector<cv::Vec3d> circles;
     cv::Mat gray = cv::Mat::zeros(image.rows, image.cols, CV_8U);
 
     cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);

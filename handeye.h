@@ -56,20 +56,17 @@ private slots:
 
     void closeEvent(QCloseEvent* event) override;
 
-    void judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3f> &_circle);
+    void judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_circle);
+
+    void resetTableWidget();
 
     bool closeInquiry();
 
-    bool showMsgBox();
-
-
-
-
 private:
 
-    void disableWidget();
-    inline void enableWidget();
-    Eigen::Matrix4d svd(std::vector<cv::Point3f> _cam_points_vec, std::vector<cv::Point3f> _base_points_vec);
+    inline void disableWidget();
+    void enableWidget();
+    Eigen::Matrix4d svd(std::vector<cv::Point3d> _cam_points_vec, std::vector<cv::Point3d> _base_points_vec);
 
     Ui::HandEye *ui;
 
@@ -83,8 +80,8 @@ private:
     int mYscale_;
 
     bool init_scan_;
-    std::vector<std::vector<cv::Point3f>> cam_points_vecs_;
-    std::vector<std::vector<cv::Point3f>> base_points_vecs_;
+    std::vector<std::vector<cv::Point3d>> cam_points_vecs_;
+    std::vector<std::vector<cv::Point3d>> base_points_vecs_;
     QString parameters_path_;
     cv::Mat tmp_mat_;
     QImage tmp_height_;
