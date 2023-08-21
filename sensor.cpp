@@ -1,7 +1,7 @@
 ﻿#include "sensor.h"
 
 Sensor::Sensor(QObject *parent)
-    : QObject{parent}, device_id_(0)
+    : QObject{parent}, fscale_(0), device_id_(0)
 {
     call_one_times_ptr_ = new CallOneTimes();
     call_one_times_ptr_->device_id_ = device_id_;
@@ -145,8 +145,10 @@ void Sensor::getHeightUpperLower(double& _upper, double& _lower)
         m_dHeightRange = 1500;
     }
 
-    _upper = m_dHeightRange;
-    _lower = -m_dHeightRange;
+//    _upper = m_dHeightRange;
+//    _lower = -m_dHeightRange;
+    _upper = 0;
+    _lower = -200;
 }
 
 
@@ -241,7 +243,8 @@ QImage Sensor::BatchDataShow(int *_BatchData,
     }
 
     double fscale = double(_ColorMax) / mSub;   //颜色区间与高度区间比例
-    fscale_ = fscale;
+    if (fscale_ == 0)
+        fscale_ = fscale;
 
     /* 抽帧抽点显示 */
     int imgW = _scaleW;
@@ -299,22 +302,16 @@ QImage Sensor::BatchDataShow(int *_BatchData,
     }
 
     //转成图像显示
-    QImage heightImage = QImage(BatchImage, imgW, imgH, QImage::Format_Indexed8)
-                             .scaled(QSize(_scaleW, _scaleH));
+    QImage heightImage = QImage(BatchImage, imgW, imgH, QImage::Format_Indexed8).scaled(QSize(_scaleW, _scaleH));
 
 
-//    QVector<QRgb> grayTable;
-//    for(int i = 0; i < 256; i++)
-//    {
-//        grayTable.push_back(qRgb(i,i,i));
-//    }
-//    heightImage.setColorTable(grayTable);
+    QVector<QRgb> grayTable;
 
-//    if(BatchImage)
-//    {
-//        delete[] BatchImage;
-//        BatchImage = NULL;
-//    }
+    for(int i = 0; i < 256; i++)
+        grayTable.push_back(qRgb(i,i,i));
+
+    heightImage.setColorTable(grayTable);
+
     return heightImage;
 }
 
@@ -377,21 +374,16 @@ QImage Sensor::GrayDataShow(unsigned char* _grayData,
     }
 
     //转成图像显示
-    QImage heightImage = QImage(BatchImage, imgW, imgH, QImage::Format_Indexed8).scaled(QSize(_scaleW, _scaleH));
+    QImage grayImage = QImage(BatchImage, imgW, imgH, QImage::Format_Indexed8).scaled(QSize(_scaleW, _scaleH));
 
     QVector<QRgb> grayTable;
-    for(int i = 0; i < 256; i++)
-    {
-        grayTable.push_back(qRgb(i,i,i));
-    }
-    heightImage.setColorTable(grayTable);
 
-//    if(BatchImage)
-//    {
-//        delete[] BatchImage;
-//        BatchImage = NULL;
-//    }
-    return heightImage;
+    for(int i = 0; i < 256; i++)
+        grayTable.push_back(qRgb(i,i,i));
+
+    grayImage.setColorTable(grayTable);
+
+    return grayImage;
 }
 
 void Sensor::InitCallOneTimesBeforeDisConnect()

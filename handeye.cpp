@@ -4,9 +4,17 @@
 
 HandEye::HandEye(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::HandEye), init_scan_(true), sensor_ptr_(new Sensor), image_proc_ptr_(new ImageProc)
+    , ui(new Ui::HandEye), mXscale_(0), mYscale_(0), init_scan_(true), sensor_ptr_(new Sensor), image_proc_ptr_(new ImageProc)
 {
     ui->setupUi(this);
+
+    parameters_path_ = QCoreApplication::applicationDirPath()+"/config/parameters.json";
+    QFile file(parameters_path_);
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        ui->textBrowser_log->append("参数文件读取失败");
+    }
+
     QStringList horizontal_headers;
     horizontal_headers << "x" << "y" << "z";
     ui->tableWidget->setHorizontalHeaderLabels(horizontal_headers);
@@ -15,6 +23,30 @@ HandEye::HandEye(QWidget *parent)
             this, &HandEye::showImage);
     ui->pBtnConnect_on_single_4->setDisabled(false);
 
+    QByteArray json_data = file.readAll();
+    QJsonDocument json_document = QJsonDocument::fromJson(json_data);
+    QJsonObject json_object = json_document.object();
+    int dp = json_object.take("dp").toVariant().toString().toInt();
+    int minDist = json_object.take("minDist").toVariant().toString().toInt();
+    int param1 = json_object.take("param1").toVariant().toString().toInt();
+    int param2 = json_object.take("param2").toVariant().toString().toInt();
+    int minRadius = json_object.take("minRadius").toVariant().toString().toInt();
+    int maxRadius = json_object.take("maxRadius").toVariant().toString().toInt();
+    file.close();
+
+    ui->lineEdit->setText(QString::number(dp));
+    ui->lineEdit_2->setText(QString::number(minDist));
+    ui->lineEdit_3->setText(QString::number(param1));
+    ui->lineEdit_4->setText(QString::number(param2));
+    ui->lineEdit_5->setText(QString::number(minRadius));
+    ui->lineEdit_6->setText(QString::number(maxRadius));
+
+    dp_ = dp;
+    minDist_= minDist;
+    param1_ = param1;
+    param2_ = param2;
+    minRadius_ = minRadius;
+    maxRadius_ = maxRadius;
 }
 
 void HandEye::on_pBtnConnect_on_connect_clicked()
@@ -87,7 +119,12 @@ inline void HandEye::enableWidget()
 {
     ui->pBtnConnect_on_single->setEnabled(true);
 
-    if (cam_points_vecs_.size() >= 5)
+    int count = 0;
+
+    for (const auto& innerVector : cam_points_vecs_)
+        count += innerVector.size();
+
+    if (count >= 5)
         ui->pBtnConnect_on_single_4->setEnabled(true);
 }
 
@@ -105,6 +142,12 @@ void HandEye::showImage(int _width, int _height)
     int mScaleH = ui->label_gray->height();
     int mXscale = int(double(_width) / mScaleW);
     int mYscale = int(double(_height) / mScaleH);
+
+    if (mXscale_ == 0 || mYscale == 0)
+    {
+        mXscale_ = mXscale;
+        mYscale_ = mYscale;
+    }
 
     int mCamId = 0;
 
@@ -135,32 +178,69 @@ void HandEye::showImage(int _width, int _height)
     }
 
     auto gray_pixmap = QPixmap::fromImage(gray_image);
-    ui->label_gray->setPixmap(gray_pixmap);
 
     cv::Mat mat = image_proc_ptr_->pixmapToCvMat(gray_pixmap);
-    auto ret_matcorners = image_proc_ptr_->findCorner(mat);
 
-    auto ret = ret_matcorners.first;
-    auto corners = ret_matcorners.second;
+    tmp_mat_ = mat;
+    tmp_height_ = height_image;
 
-    auto drawed_pixmap = image_proc_ptr_->matToPixmap(mat);
+    auto circles = image_proc_ptr_->getCircle(mat, dp_, minDist_, param1_, param2_, minRadius_, maxRadius_);
+    judgeAndInputBase(mat, circles);
+}
+
+bool HandEye::showMsgBox()
+{
+    QMessageBox msg_box;
+    QFont font;
+    font.setFamily("黑体");
+    font.setPointSize(11);
+
+    msg_box.setFont(font);
+
+    msg_box.setWindowTitle("确认点位");
+    msg_box.setText("是否寻找到了点位？");
+
+    msg_box.addButton("否", QMessageBox::RejectRole);
+    QPushButton *okButton = msg_box.addButton("是", QMessageBox::AcceptRole);
+
+    msg_box.exec();
+
+    bool judge = msg_box.clickedButton() == okButton;
+
+    return judge;
+}
+
+void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3f> &_circle)
+{
+    for (size_t i = 0; i < _circle.size(); ++i)
+    {
+        cv::Point center(cvRound(_circle[i][0]), cvRound(_circle[i][1]));
+        int radius = cvRound(_circle[i][2]);
+        cv::circle(_mat, center, radius, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
+        cv::putText(_mat, std::to_string(i + 1), center + cv::Point(10, 10), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
+    }
+
+    auto drawed_pixmap = image_proc_ptr_->matToPixmap(_mat);
     ui->label_gray->setPixmap(drawed_pixmap);
 
-    if (ret)
+    bool judge = showMsgBox();
+
+    if (!_circle.empty() && judge)
     {
-        ui->textBrowser_log->append("寻找角点成功 请按照顺序输入任意数量base的xyz坐标");
+        ui->textBrowser_log->append("寻找成功 请按照顺序输入任意数量base的xyz坐标");
         std::vector<cv::Point3f> cam_points_vec;
-        for (const auto &corner : corners)
+        for (const auto &corner : _circle)
         {
-            int x = corner.x;
-            int y = corner.y;
-            int gray_value = height_image.pixel(x, y);
-            float height = gray_value / sensor_ptr_->fscale_ + sensor_ptr_->dheight_lower_;
-            cv::Point3f point_3f(corner.x * mXscale * sensor_ptr_->call_one_times_ptr_->mXinterVal,
-                                 corner.y * mYscale * sensor_ptr_->call_one_times_ptr_->mYinterVal,
-                                 height);
+            float x = corner[0];
+            float y = corner[1];
+            unsigned char gray_value = tmp_height_.pixel(x, y);
+            float z = static_cast<float>(gray_value) / sensor_ptr_->fscale_ + sensor_ptr_->dheight_lower_;
+            cv::Point3f point_3f(x * mXscale_ * sensor_ptr_->call_one_times_ptr_->mXinterVal,
+                                 y * mYscale_ * sensor_ptr_->call_one_times_ptr_->mYinterVal,
+                                 z);
 
             cam_points_vec.emplace_back(point_3f);
+            ui->textBrowser_log->append(QString("%1, %2, %3").arg(x).arg(y).arg(z));
         }
 
         cam_points_vecs_.emplace_back(cam_points_vec);
@@ -169,8 +249,11 @@ void HandEye::showImage(int _width, int _height)
 
     else
     {
-        ui->textBrowser_log->append("寻找角点失败，请重新扫图");
+        ui->textBrowser_log->append("寻找失败，请重新扫图或调整参数");
+        ui->tableWidget->clear();
+        ui->tableWidget->setRowCount(1);
     }
+
 }
 
 
@@ -284,3 +367,108 @@ HandEye::~HandEye()
     delete sensor_ptr_;
     delete image_proc_ptr_;
 }
+
+void HandEye::on_pBtnConnect_on_connect_2_clicked()
+{
+    QFile file(parameters_path_);
+
+    QJsonDocument json_document(QJsonDocument::fromJson(file.readAll()));
+    QJsonObject json_obj = json_document.object();
+
+    json_obj["dp"] = ui->lineEdit->text();
+    json_obj["minDist"] = ui->lineEdit_2->text();
+    json_obj["param1"] = ui->lineEdit_3->text();
+    json_obj["param2"] = ui->lineEdit_4->text();
+    json_obj["minRadius"] = ui->lineEdit_5->text();
+    json_obj["maxRadius"] = ui->lineEdit_6->text();
+
+    json_document.setObject(json_obj);
+    QByteArray jsonData = json_document.toJson();
+    file.close();
+
+    QFile::remove(parameters_path_);
+
+    QFile newfile(parameters_path_);
+    if(!newfile.open(QIODevice::WriteOnly)){
+        qDebug()<<"jsonFile open error";
+    }
+    newfile.write(jsonData);
+}
+
+
+void HandEye::on_lineEdit_textEdited(const QString &arg1)
+{
+    dp_ = arg1.toInt();
+}
+
+
+void HandEye::on_lineEdit_2_textEdited(const QString &arg1)
+{
+    minDist_ = arg1.toInt();
+}
+
+
+void HandEye::on_lineEdit_3_textEdited(const QString &arg1)
+{
+    param1_ = arg1.toInt();
+}
+
+
+void HandEye::on_lineEdit_4_textEdited(const QString &arg1)
+{
+    param2_ = arg1.toInt();
+}
+
+
+void HandEye::on_lineEdit_5_textEdited(const QString &arg1)
+{
+    minRadius_ = arg1.toInt();
+}
+
+
+void HandEye::on_lineEdit_6_textEdited(const QString &arg1)
+{
+    maxRadius_ = arg1.toInt();
+}
+
+
+void HandEye::on_pBtnConnect_on_connect_3_clicked()
+{
+    cv::Mat mat = tmp_mat_.clone();
+    auto circles = image_proc_ptr_->getCircle(mat, dp_, minDist_, param1_, param2_, minRadius_, maxRadius_);
+    judgeAndInputBase(mat, circles);
+}
+
+bool HandEye::closeInquiry()
+{
+    QMessageBox msg_box;
+    QFont font;
+    font.setFamily("黑体");
+    font.setPointSize(11);
+
+    msg_box.setFont(font);
+
+    msg_box.setWindowTitle("保存参数");
+    msg_box.setText("是否需要保存参数？");
+
+    QPushButton *okButton = msg_box.addButton("确认", QMessageBox::AcceptRole);
+    QPushButton *cancelButton = msg_box.addButton("放弃", QMessageBox::RejectRole);
+
+    msg_box.exec();
+
+    if (msg_box.clickedButton() == okButton)
+        return true;
+    else if (msg_box.clickedButton() == cancelButton)
+        return false;
+    else
+        return false;
+
+}
+
+void HandEye::closeEvent(QCloseEvent* event)
+{
+    if (closeInquiry())
+        on_pBtnConnect_on_connect_2_clicked();
+    event->accept();
+}
+
