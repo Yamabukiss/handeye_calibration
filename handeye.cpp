@@ -1,11 +1,12 @@
 ﻿#pragma execution_character_set("utf-8")
 #include "handeye.h"
 #include "ui_handeye.h"
+#include "verification.h"
 
 HandEye::HandEye(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::HandEye), mXscale_(0), mYscale_(0), init_scan_(true),
-    sensor_ptr_(new Sensor), image_proc_ptr_(new ImageProc)
+    sensor_ptr_(new Sensor), image_proc_ptr_(new ImageProc), verify_ptr_(new Verification)
 {
     ui->setupUi(this);
 
@@ -16,39 +17,55 @@ HandEye::HandEye(QWidget *parent)
     connect(sensor_ptr_->call_one_times_ptr_, &CallOneTimes::SignalDataShow,
             this, &HandEye::showImage);
 
-    ui->pBtnConnect_on_single_4->setEnabled(false);
-
     parameters_path_ = QCoreApplication::applicationDirPath()+"/config/parameters.json";
     QFile file(parameters_path_);
     if (!file.open(QIODevice::ReadOnly))
     {
         ui->textBrowser_log->append("参数文件读取失败");
+        dp_ = 0;
+        minDist_= 0;
+        param1_ = 0;
+        param2_ = 0;
+        minRadius_ = 0;
+        maxRadius_ = 0;
     }
 
-    QByteArray json_data = file.readAll();
-    QJsonDocument json_document = QJsonDocument::fromJson(json_data);
-    QJsonObject json_object = json_document.object();
-    int dp = json_object.take("dp").toVariant().toString().toInt();
-    int minDist = json_object.take("minDist").toVariant().toString().toInt();
-    int param1 = json_object.take("param1").toVariant().toString().toInt();
-    int param2 = json_object.take("param2").toVariant().toString().toInt();
-    int minRadius = json_object.take("minRadius").toVariant().toString().toInt();
-    int maxRadius = json_object.take("maxRadius").toVariant().toString().toInt();
-    file.close();
+    else
+    {
+        QByteArray json_data = file.readAll();
+        QJsonDocument json_document = QJsonDocument::fromJson(json_data);
+        QJsonObject json_object = json_document.object();
+        int dp = json_object.take("dp").toVariant().toString().toInt();
+        int minDist = json_object.take("minDist").toVariant().toString().toInt();
+        int param1 = json_object.take("param1").toVariant().toString().toInt();
+        int param2 = json_object.take("param2").toVariant().toString().toInt();
+        int minRadius = json_object.take("minRadius").toVariant().toString().toInt();
+        int maxRadius = json_object.take("maxRadius").toVariant().toString().toInt();
+        file.close();
 
-    ui->lineEdit->setText(QString::number(dp));
-    ui->lineEdit_2->setText(QString::number(minDist));
-    ui->lineEdit_3->setText(QString::number(param1));
-    ui->lineEdit_4->setText(QString::number(param2));
-    ui->lineEdit_5->setText(QString::number(minRadius));
-    ui->lineEdit_6->setText(QString::number(maxRadius));
+        ui->lineEdit->setText(QString::number(dp));
+        ui->lineEdit_2->setText(QString::number(minDist));
+        ui->lineEdit_3->setText(QString::number(param1));
+        ui->lineEdit_4->setText(QString::number(param2));
+        ui->lineEdit_5->setText(QString::number(minRadius));
+        ui->lineEdit_6->setText(QString::number(maxRadius));
 
-    dp_ = dp;
-    minDist_= minDist;
-    param1_ = param1;
-    param2_ = param2;
-    minRadius_ = minRadius;
-    maxRadius_ = maxRadius;
+        dp_ = dp;
+        minDist_= minDist;
+        param1_ = param1;
+        param2_ = param2;
+        minRadius_ = minRadius;
+        maxRadius_ = maxRadius;
+    }
+
+    ui->pBtnConnect_on_connect_3->setEnabled(false);
+    ui->pBtnConnect_on_connect_4->setEnabled(false);
+    ui->pBtnConnect_on_single->setEnabled(false);
+    ui->pBtnConnect_on_single_3->setEnabled(false);
+    ui->pBtnConnect_on_single_4->setEnabled(false);
+    ui->pBtnConnect_on_single_5->setEnabled(false);
+
+    verify_ptr_->utils_ptr_->setValidator(ui->tableWidget);
 }
 
 void HandEye::on_pBtnConnect_on_connect_clicked()
@@ -57,6 +74,11 @@ void HandEye::on_pBtnConnect_on_connect_clicked()
 
     if(ret)
     {
+        ui->pBtnConnect_on_connect_3->setEnabled(true);
+        ui->pBtnConnect_on_connect_4->setEnabled(true);
+        ui->pBtnConnect_on_single->setEnabled(true);
+        ui->pBtnConnect_on_single_3->setEnabled(true);
+        ui->pBtnConnect_on_connect->setEnabled(false);
         ui->textBrowser_log->append("连接成功");
     }
     else
@@ -69,6 +91,7 @@ void HandEye::on_pBtnConnect_on_connect_clicked()
 void HandEye::on_pBtnConnect_on_single_clicked()
 {
     ui->label_gray->clear();
+    disableFunctionButton();
     bool ret = false;
 
     if (init_scan_)
@@ -88,24 +111,30 @@ void HandEye::on_pBtnConnect_on_single_clicked()
 
 void HandEye::keyPressEvent(QKeyEvent *event)
 {
-    if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
-    {
-        int new_row = ui->tableWidget->rowCount();
-        bool new_row_empty = true;
-        for (int col = 0; col < ui->tableWidget->columnCount(); ++col)
-        {
-            QTableWidgetItem *item = ui->tableWidget->item(new_row - 1, col);
-            if (item && !item->text().isEmpty())
-            {
-                new_row_empty = false;
-                break;
-            }
-        }
-        if (!new_row_empty)
-            ui->tableWidget->insertRow(new_row);
+    auto base_table = ui->tableWidget;
 
-        ui->tableWidget->setCurrentCell(new_row, 0);
+    if (base_table->hasFocus())
+    {
+        bool judge = true;
+        if (cam_points_vecs_.empty())
+            judge = false;
+
+        else
+        {
+            size_t cam_vec_size = cam_points_vecs_[cam_points_vecs_.size() - 1].size();
+            judge = base_table->rowCount() < cam_vec_size;
+        }
+
+        if (judge && (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter))
+            verify_ptr_->utils_ptr_->insertNewRow(base_table);
+
+        else
+        {
+            QWidget::keyPressEvent(event);
+        }
+
     }
+
     else
     {
         QWidget::keyPressEvent(event);
@@ -118,25 +147,42 @@ void HandEye::enableWidget()
 
     static size_t count = 0;
 
-    size_t vec_size = base_points_vecs_.size();
+    if (!cam_points_vecs_.empty())
+        count += cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].size();
 
-    count += base_points_vecs_[vec_size - static_cast<size_t>(1)].size();
-
-    if (!ui->pBtnConnect_on_single_4->isEnabled() && count >= 5 )
+    if (!ui->pBtnConnect_on_single_4->isEnabled() && count >= 5)
+    {
         ui->pBtnConnect_on_single_4->setEnabled(true);
+        ui->pBtnConnect_on_single_5->setEnabled(true);
+    }
 }
 
-inline void HandEye::disableWidget()
+void HandEye::disableWidget()
 {
     ui->pBtnConnect_on_single->setEnabled(false);
-
-    if (!ui->pBtnConnect_on_single_4->isEnabled())
+    if (ui->pBtnConnect_on_single_4->isEnabled())
+    {
         ui->pBtnConnect_on_single_4->setEnabled(false);
+        ui->pBtnConnect_on_single_5->setEnabled(false);
+    }
+}
+
+void HandEye::disableFunctionButton()
+{
+    ui->pBtnConnect_on_connect_3->setEnabled(false);
+    ui->pBtnConnect_on_single_3->setEnabled(false);
+}
+
+void HandEye::enableFunctionButton()
+{
+    ui->pBtnConnect_on_connect_3->setEnabled(true);
+    ui->pBtnConnect_on_single_3->setEnabled(true);
 }
 
 void HandEye::showImage(int _width, int _height)
 {
     ui->textBrowser_log->append("请等待图像处理...");
+    enableFunctionButton();
     //scale size
     int mScaleW = ui->label_gray->width();
     int mScaleH = ui->label_gray->height();
@@ -211,8 +257,11 @@ void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_ci
 
     ui->textBrowser_log->append("寻找成功 请按照顺序输入任意数量base的xyz坐标");
     std::vector<cv::Point3d> cam_points_vec;
-    for (const auto &corner : _circle)
+
+    QString batch_text;
+    for (size_t i = 0; i < _circle.size(); i++)
     {
+        auto corner = _circle[i];
         double x = corner[0];
         double y = corner[1];
         unsigned char gray_value = tmp_height_.pixel(x, y);
@@ -224,12 +273,26 @@ void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_ci
         cv::Point3d point_3d(x, y, z);
 
         cam_points_vec.emplace_back(point_3d);
-        ui->textBrowser_log->append(QString("%1, %2, %3").arg(x).arg(y).arg(z));
+        QString text = QString("点%1物理坐标为: %2, %3, %4").arg(i + 1).arg(x).arg(y).arg(z);
+
+        ui->textBrowser_log->append(text);
+        batch_text += text + "\n";
     }
+
+    verify_ptr_->setTextLog(batch_text);
 
     cam_points_vecs_.emplace_back(cam_points_vec);
 
     disableWidget();
+}
+
+void HandEye::showPointsSum()
+{
+    size_t points_count = 0;
+    for (const auto &vec : cam_points_vecs_)
+        points_count += vec.size();
+
+    ui->textBrowser_log->append("当前总点数为:" + QString::number(points_count));
 }
 
 void HandEye::on_pBtnConnect_on_single_3_clicked()
@@ -237,31 +300,26 @@ void HandEye::on_pBtnConnect_on_single_3_clicked()
     std::vector<cv::Point3d> base_points_vec;
     int row_size = ui->tableWidget->rowCount();
 
+    bool base_check = verify_ptr_->utils_ptr_->tableCheck(ui->tableWidget);
+    if (!base_check)
+    {
+        verify_ptr_->utils_ptr_->showWarnMsg("表格内容不完整，请补充");
+        return;
+    }
+
     for (int row = 0; row < row_size; row++)
     {
-        try
-        {
-            float x = ui->tableWidget->item(row, 0)->text().toFloat();
-            float y = ui->tableWidget->item(row, 1)->text().toFloat();
-            float z = ui->tableWidget->item(row, 2)->text().toFloat();
-            base_points_vec.emplace_back(cv::Point3d(x, y, z));
-        }
-        catch (std::invalid_argument e)
-        {
-            ui->textBrowser_log->append("未完全输入xyz三列数据，请重新输入");
-            return;
-        }
+        double x = ui->tableWidget->item(row, 0)->text().toDouble();
+        double y = ui->tableWidget->item(row, 1)->text().toDouble();
+        double z = ui->tableWidget->item(row, 2)->text().toDouble();
+        base_points_vec.emplace_back(cv::Point3d(x, y, z));
 
     }
         size_t vec_size = base_points_vec.size();
         cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].resize(vec_size);
         base_points_vecs_.emplace_back(base_points_vec);
 
-        size_t points_count = 0;
-        for (const auto &vec : cam_points_vecs_)
-            points_count += vec.size();
-
-        ui->textBrowser_log->append("输入成功, 当前总点数为:" + QString::number(points_count));
+        showPointsSum();
         resetTableWidget();
 }
 
@@ -277,7 +335,7 @@ void HandEye::on_pBtnConnect_on_single_4_clicked()
         base_points_vec.insert(base_points_vec.end(), point_vec.begin(), point_vec.end());
 
     auto handeye_mat = svd(cam_points_vec, base_points_vec);
-
+    verify_ptr_->setHandEyeMatrix(handeye_mat);
     QString mat_string;
 
     for (int row = 0; row < 4; ++row)
@@ -305,7 +363,7 @@ Eigen::Matrix4d HandEye::svd(std::vector<cv::Point3d> _cam_points_vec, std::vect
     Eigen::MatrixXd A(4, _cam_points_vec.size());
     Eigen::MatrixXd B(4, _base_points_vec.size());
 
-    for (int i = 0; i < _cam_points_vec.size(); ++i)
+    for (size_t i = 0; i < _cam_points_vec.size(); i++)
     {
         A.col(i) << _cam_points_vec[i].x, _cam_points_vec[i].y, _cam_points_vec[i].z, 1.0;
         B.col(i) << _base_points_vec[i].x, _base_points_vec[i].y, _base_points_vec[i].z, 1.0;
@@ -344,6 +402,12 @@ void HandEye::on_pBtnConnect_on_connect_2_clicked()
 {
     QFile file(parameters_path_);
 
+    if(!file.open(QIODevice::ReadWrite))
+    {
+        ui->textBrowser_log->append("参数保存失败");
+        return;
+    }
+
     QJsonDocument json_document(QJsonDocument::fromJson(file.readAll()));
     QJsonObject json_obj = json_document.object();
 
@@ -365,6 +429,7 @@ void HandEye::on_pBtnConnect_on_connect_2_clicked()
         qDebug()<<"jsonFile open error";
     }
     newfile.write(jsonData);
+    ui->textBrowser_log->append("参数保存成功");
 }
 
 void HandEye::on_lineEdit_textEdited(const QString &arg1)
@@ -409,9 +474,10 @@ void HandEye::on_pBtnConnect_on_connect_3_clicked()
         ui->textBrowser_log->append("没有找到点，请重新扫图");
         return;
     }
-
-    cam_points_vecs_.pop_back();
+    if (!cam_points_vecs_.empty())
+        cam_points_vecs_.pop_back();
     judgeAndInputBase(mat, circles);
+    resetTableWidget();
 }
 
 bool HandEye::closeInquiry()
@@ -453,11 +519,27 @@ void HandEye::resetTableWidget()
     enableWidget();
 }
 
+void HandEye::on_pBtnConnect_on_single_5_clicked()
+{
+    verify_ptr_->show();
+    verify_ptr_->max_row_count_ = cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].size();
+}
+
+void HandEye::on_pBtnConnect_on_connect_4_clicked()
+{
+    if (!cam_points_vecs_.empty())
+        cam_points_vecs_.pop_back();
+
+    showPointsSum();
+    enableWidget();
+    ui->label_gray->clear();
+}
+
 HandEye::~HandEye()
 {
     delete ui;
     delete sensor_ptr_;
     delete image_proc_ptr_;
+    delete verify_ptr_;
 }
-
 

@@ -9,20 +9,27 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    delegate.cpp \
     imageproc.cpp \
     main.cpp \
     handeye.cpp \
     sensor.cpp \
-    CallOneTimes.cpp
+    CallOneTimes.cpp \
+    utils.cpp \
+    verification.cpp
 
 HEADERS += \
+    delegate.h \
     handeye.h \
     imageproc.h \
     sensor.h \
-    CallOneTimes.h
+    CallOneTimes.h \
+    utils.h \
+    verification.h
 
 FORMS += \
-    handeye.ui
+    handeye.ui \
+    verification.ui
 
 INCLUDEPATH += D:\opencv\opencv\build\include
 INCLUDEPATH +=  $$PWD/SR_SdkDllx64

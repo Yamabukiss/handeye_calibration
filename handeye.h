@@ -17,6 +17,8 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class HandEye; }
 QT_END_NAMESPACE
 
+class Verification;
+
 class HandEye : public QMainWindow
 {
     Q_OBJECT
@@ -62,13 +64,23 @@ private slots:
 
     bool closeInquiry();
 
+    void on_pBtnConnect_on_single_5_clicked();
+
+    void on_pBtnConnect_on_connect_4_clicked();
+
 private:
 
-    inline void disableWidget();
-    void enableWidget();
-    Eigen::Matrix4d svd(std::vector<cv::Point3d> _cam_points_vec, std::vector<cv::Point3d> _base_points_vec);
+    void disableWidget();
 
-    Ui::HandEye *ui;
+    void enableWidget();
+
+    void disableFunctionButton();
+
+    void enableFunctionButton();
+
+    void showPointsSum();
+
+    Eigen::Matrix4d svd(std::vector<cv::Point3d> _cam_points_vec, std::vector<cv::Point3d> _base_points_vec);
 
     int dp_;
     int minDist_;
@@ -88,5 +100,7 @@ private:
 
     Sensor* sensor_ptr_;
     ImageProc* image_proc_ptr_;
+    Verification* verify_ptr_;
+    Ui::HandEye *ui;
 };
 #endif // HANDEYE_H

@@ -19,12 +19,17 @@ public:
     explicit Sensor(QObject *parent = nullptr);
     ~Sensor();
     bool ethenetConnect();
+
     bool initBatch();
+
     bool singleBatch();
+
     void InitCallOneTimesBeforeDisConnect();
+
     void InitConfigBeforeDisConnect();
 
     void ethenetDisconnect();
+
     QImage BatchDataShow(int *_BatchData,
                        double max_height,
                        double min_height,
@@ -50,9 +55,13 @@ public:
     CallOneTimes* call_one_times_ptr_{};
 
 private:
+
     int getEncoderParameters();
+
     bool setEncoderParameters();
+
     void getHeightUpperLower(double& _upper, double& _lower);
+
     int device_id_;
     std::shared_ptr<unsigned char> gray_batch_ptr_{};
     std::shared_ptr<unsigned char> height_batch_ptr_{};

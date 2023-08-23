@@ -59,11 +59,20 @@ void ImageProc::refineCorner(const cv::Mat &image, std::vector<cv::Point2f> &cor
 std::vector<cv::Vec3d> ImageProc::getCircle(cv::Mat image, int _dp, int _minDist, int _param1,
                           int _param2, int _minRadius, int _maxRadius)
 {
-    std::vector<cv::Vec3d> circles;
+    std::vector<cv::Vec3f> circles;
     cv::Mat gray = cv::Mat::zeros(image.rows, image.cols, CV_8U);
 
     cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
 
     cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT, _dp, _minDist, _param1, _param2, _minRadius, _maxRadius);
-    return circles;
+
+    std::vector<cv::Vec3d> tmp_circles;
+
+    for (const cv::Vec3f& circle : circles)
+    {
+        cv::Vec3d tmp_circle(circle[0], circle[1], circle[2]);
+        tmp_circles.push_back(tmp_circle);
+    }
+
+    return tmp_circles;
 }

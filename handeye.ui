@@ -184,7 +184,7 @@
    <widget class="QPushButton" name="pBtnConnect_on_single_3">
     <property name="geometry">
      <rect>
-      <x>830</x>
+      <x>790</x>
       <y>580</y>
       <width>121</width>
       <height>61</height>
@@ -215,7 +215,7 @@
    <widget class="QPushButton" name="pBtnConnect_on_single_4">
     <property name="geometry">
      <rect>
-      <x>1050</x>
+      <x>930</x>
       <y>580</y>
       <width>121</width>
       <height>61</height>
@@ -412,6 +412,68 @@
       </layout>
      </item>
     </layout>
+   </widget>
+   <widget class="QPushButton" name="pBtnConnect_on_single_5">
+    <property name="geometry">
+     <rect>
+      <x>1070</x>
+      <y>580</y>
+      <width>121</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="minimumSize">
+     <size>
+      <width>101</width>
+      <height>41</height>
+     </size>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>55555</width>
+      <height>55555</height>
+     </size>
+    </property>
+    <property name="font">
+     <font>
+      <family>黑体</family>
+      <pointsize>11</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>精度测试</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pBtnConnect_on_connect_4">
+    <property name="geometry">
+     <rect>
+      <x>960</x>
+      <y>90</y>
+      <width>121</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="minimumSize">
+     <size>
+      <width>101</width>
+      <height>41</height>
+     </size>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>55555</width>
+      <height>55555</height>
+     </size>
+    </property>
+    <property name="font">
+     <font>
+      <family>黑体</family>
+      <pointsize>11</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>抛弃样本</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

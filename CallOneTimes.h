@@ -191,8 +191,6 @@ private:
     unsigned char* mIntensityData[CAMNUM];  //灰度数据缓存
     unsigned int* mEncoderData[CAMNUM];     //编码器数据缓存
 
-
-
 signals:
     void SignalTextInfo(QString _text);     //信息显示信号
     void SignalDataShow(int _width,
