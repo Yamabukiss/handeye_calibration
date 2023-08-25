@@ -42,7 +42,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QPushButton" name="pBtnConnect_on_single">
+   <widget class="QPushButton" name="scan_button">
     <property name="geometry">
      <rect>
       <x>1040</x>
@@ -73,7 +73,7 @@
      <string>扫图</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pBtnConnect_on_connect">
+   <widget class="QPushButton" name="connect_button">
     <property name="geometry">
      <rect>
       <x>870</x>
@@ -181,7 +181,7 @@
      </widget>
     </widget>
    </widget>
-   <widget class="QPushButton" name="pBtnConnect_on_single_3">
+   <widget class="QPushButton" name="input_button">
     <property name="geometry">
      <rect>
       <x>790</x>
@@ -212,7 +212,7 @@
      <string>完成本次输入</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pBtnConnect_on_single_4">
+   <widget class="QPushButton" name="calculate_button">
     <property name="geometry">
      <rect>
       <x>930</x>
@@ -243,7 +243,7 @@
      <string>完成采集</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pBtnConnect_on_connect_2">
+   <widget class="QPushButton" name="save_button">
     <property name="geometry">
      <rect>
       <x>600</x>
@@ -274,7 +274,7 @@
      <string>保存参数</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pBtnConnect_on_connect_3">
+   <widget class="QPushButton" name="update_button">
     <property name="geometry">
      <rect>
       <x>600</x>
@@ -413,7 +413,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QPushButton" name="pBtnConnect_on_single_5">
+   <widget class="QPushButton" name="test_button">
     <property name="geometry">
      <rect>
       <x>1070</x>
@@ -444,7 +444,7 @@
      <string>精度测试</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pBtnConnect_on_connect_4">
+   <widget class="QPushButton" name="drop_button">
     <property name="geometry">
      <rect>
       <x>960</x>

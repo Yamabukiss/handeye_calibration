@@ -198,6 +198,8 @@ signals:
 
     void save3dSignal(bool signal);
 
+    void scanFinishSignal(QString text);
+
 };
 
 #endif // CALLONETIMES_H

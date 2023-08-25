@@ -62,6 +62,8 @@ private:
 
     void getHeightUpperLower(double& _upper, double& _lower);
 
+    void connectFunc();
+
     int device_id_;
     std::shared_ptr<unsigned char> gray_batch_ptr_{};
     std::shared_ptr<unsigned char> height_batch_ptr_{};

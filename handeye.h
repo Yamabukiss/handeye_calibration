@@ -32,15 +32,15 @@ private slots:
 
     void keyPressEvent(QKeyEvent *event) override;
 
-    void on_pBtnConnect_on_connect_clicked();
+    void on_connect_button_clicked();
 
-    void on_pBtnConnect_on_single_clicked();
+    void on_scan_button_clicked();
 
-    void on_pBtnConnect_on_single_3_clicked();
+    void on_input_button_clicked();
 
-    void on_pBtnConnect_on_single_4_clicked();
+    void on_calculate_button_clicked();
 
-    void on_pBtnConnect_on_connect_2_clicked();
+    void on_save_button_clicked();
 
     void on_lineEdit_textEdited(const QString &arg1);
 
@@ -54,7 +54,7 @@ private slots:
 
     void on_lineEdit_6_textEdited(const QString &arg1);
 
-    void on_pBtnConnect_on_connect_3_clicked();
+    void on_update_button_clicked();
 
     void closeEvent(QCloseEvent* event) override;
 
@@ -64,15 +64,15 @@ private slots:
 
     bool closeInquiry();
 
-    void on_pBtnConnect_on_single_5_clicked();
+    void on_test_button_clicked();
 
-    void on_pBtnConnect_on_connect_4_clicked();
+    void on_drop_button_clicked();
 
 private:
 
     void disableWidget();
 
-    void enableWidget();
+    void judgePointsNum();
 
     void disableFunctionButton();
 

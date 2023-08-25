@@ -226,7 +226,8 @@ void ImageDisplayThread::run()
 
 void CallOneTimes::DataShowSignalFunc()
 {
-    SignalDataShow(mBatchWidth, mBatchPoint);
+    emit scanFinishSignal(QString("批处理已完成，等待图像处理..."));
+    emit SignalDataShow(mBatchWidth, mBatchPoint);
 }
 
 void CallOneTimes::ImageUpdate()

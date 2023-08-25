@@ -144,10 +144,27 @@ void Sensor::getHeightUpperLower(double& _upper, double& _lower)
         m_dHeightRange = 1500;
     }
 
-//    _upper = m_dHeightRange;
-//    _lower = -m_dHeightRange;
-    _upper = 0;
-    _lower = -200;
+    _upper = m_dHeightRange;
+    _lower = -m_dHeightRange;
+//    _upper = 0;
+//    _lower = -200;
+}
+
+void Sensor::connectFunc()
+{
+    getHeightUpperLower(dheight_upper_, dheight_lower_); // determinant by the device
+    int batch_width = SR7IF_ProfileDataWidth(device_id_, NULL);
+
+    // get parameters from camera
+    int ret = getEncoderParameters();
+
+    if (ret != 0x02)
+        setEncoderParameters();
+
+    // initialize
+    call_one_times_ptr_->VariableInit();
+    call_one_times_ptr_->setDeviceId(device_id_);
+    call_one_times_ptr_->DataMemoryInit(batch_width);
 }
 
 bool Sensor::ethenetConnect()
@@ -162,25 +179,24 @@ bool Sensor::ethenetConnect()
 
     int open_ret = SR7IF_EthernetOpen(device_id_, &sr_ethernet_config);
     if (open_ret < 0)
-        return false;
+    {
+        int tmp_ret = SR7IF_EthernetOpen(device_id_, &sr_ethernet_config);
+
+        //reconnect
+        if (tmp_ret < 0)
+           return false;
+
+        else
+        {
+           connectFunc();
+           return true;
+        }
+    }
     else
     {
-        getHeightUpperLower(dheight_upper_, dheight_lower_); // determinant by the device
-        int batch_width = SR7IF_ProfileDataWidth(device_id_, NULL);
-
-        // get parameters from camera
-        int ret = getEncoderParameters();
-
-        if (ret != 0x02)
-            setEncoderParameters();
-
-        // initialize
-        call_one_times_ptr_->VariableInit();
-        call_one_times_ptr_->setDeviceId(device_id_);
-        call_one_times_ptr_->DataMemoryInit(batch_width);
+        connectFunc();
         return true;
     }
-
 }
 
 bool Sensor::initBatch()
@@ -216,7 +232,6 @@ bool Sensor::singleBatch()
         return true;
 }
 
-//3200 2000 3200/640 2000/480 640 480
 QImage Sensor::BatchDataShow(int *_BatchData,
                                  double max_height,
                                  double min_height,

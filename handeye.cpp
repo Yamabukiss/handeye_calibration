@@ -17,7 +17,17 @@ HandEye::HandEye(QWidget *parent)
     connect(sensor_ptr_->call_one_times_ptr_, &CallOneTimes::SignalDataShow,
             this, &HandEye::showImage);
 
-    parameters_path_ = QCoreApplication::applicationDirPath()+"/config/parameters.json";
+<<<<<<< HEAD
+=======
+    connect(sensor_ptr_->call_one_times_ptr_, &CallOneTimes::scanFinishSignal,
+            this,
+            [this](QString text)
+            {
+                ui->textBrowser_log->append(text);
+            });
+
+>>>>>>> 89823a3 (Optimize the use logic of widget)
+    parameters_path_ = QCoreApplication::applicationDirPath()+"/config/handeye.json";
     QFile file(parameters_path_);
     if (!file.open(QIODevice::ReadOnly))
     {
@@ -58,27 +68,24 @@ HandEye::HandEye(QWidget *parent)
         maxRadius_ = maxRadius;
     }
 
-    ui->pBtnConnect_on_connect_3->setEnabled(false);
-    ui->pBtnConnect_on_connect_4->setEnabled(false);
-    ui->pBtnConnect_on_single->setEnabled(false);
-    ui->pBtnConnect_on_single_3->setEnabled(false);
-    ui->pBtnConnect_on_single_4->setEnabled(false);
-    ui->pBtnConnect_on_single_5->setEnabled(false);
+    ui->scan_button->setEnabled(false);
+    ui->drop_button->setEnabled(false);
+    ui->input_button->setEnabled(false);
+    ui->calculate_button->setEnabled(false);
+    ui->test_button->setEnabled(false);
+    ui->update_button->setEnabled(false);
 
     verify_ptr_->utils_ptr_->setValidator(ui->tableWidget);
 }
 
-void HandEye::on_pBtnConnect_on_connect_clicked()
+void HandEye::on_connect_button_clicked()
 {
     bool ret = sensor_ptr_->ethenetConnect();
 
     if(ret)
     {
-        ui->pBtnConnect_on_connect_3->setEnabled(true);
-        ui->pBtnConnect_on_connect_4->setEnabled(true);
-        ui->pBtnConnect_on_single->setEnabled(true);
-        ui->pBtnConnect_on_single_3->setEnabled(true);
-        ui->pBtnConnect_on_connect->setEnabled(false);
+        ui->scan_button->setEnabled(true);
+        ui->connect_button->setEnabled(false);
         ui->textBrowser_log->append("连接成功");
     }
     else
@@ -88,10 +95,10 @@ void HandEye::on_pBtnConnect_on_connect_clicked()
 
 }
 
-void HandEye::on_pBtnConnect_on_single_clicked()
+void HandEye::on_scan_button_clicked()
 {
     ui->label_gray->clear();
-    disableFunctionButton();
+
     bool ret = false;
 
     if (init_scan_)
@@ -106,7 +113,9 @@ void HandEye::on_pBtnConnect_on_single_clicked()
     if(!ret)
         ui->textBrowser_log->append("执行扫图失败");
     else
+    {
         ui->textBrowser_log->append("执行扫图成功");
+    }
 }
 
 void HandEye::keyPressEvent(QKeyEvent *event)
@@ -132,7 +141,6 @@ void HandEye::keyPressEvent(QKeyEvent *event)
         {
             QWidget::keyPressEvent(event);
         }
-
     }
 
     else
@@ -141,48 +149,49 @@ void HandEye::keyPressEvent(QKeyEvent *event)
     }
 };
 
-void HandEye::enableWidget()
+void HandEye::judgePointsNum()
 {
-    ui->pBtnConnect_on_single->setEnabled(true);
+    size_t count = 0;
 
-    static size_t count = 0;
+    if (!base_points_vecs_.empty())
+        for (const auto &vec : base_points_vecs_)
+            count += vec.size();
 
-    if (!cam_points_vecs_.empty())
-        count += cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].size();
-
-    if (!ui->pBtnConnect_on_single_4->isEnabled() && count >= 5)
+    if (count >= 5)
     {
-        ui->pBtnConnect_on_single_4->setEnabled(true);
-        ui->pBtnConnect_on_single_5->setEnabled(true);
+        ui->calculate_button->setEnabled(true);
+        ui->test_button->setEnabled(true);
     }
-}
-
-void HandEye::disableWidget()
-{
-    ui->pBtnConnect_on_single->setEnabled(false);
-    if (ui->pBtnConnect_on_single_4->isEnabled())
+    else if (count < 5)
     {
-        ui->pBtnConnect_on_single_4->setEnabled(false);
-        ui->pBtnConnect_on_single_5->setEnabled(false);
+        ui->calculate_button->setEnabled(false);
+        ui->test_button->setEnabled(false);
     }
 }
 
 void HandEye::disableFunctionButton()
 {
-    ui->pBtnConnect_on_connect_3->setEnabled(false);
-    ui->pBtnConnect_on_single_3->setEnabled(false);
+    ui->drop_button->setEnabled(false);
+    ui->update_button->setEnabled(false);
+    ui->input_button->setEnabled(false);
+    ui->scan_button->setEnabled(true);
 }
 
 void HandEye::enableFunctionButton()
 {
-    ui->pBtnConnect_on_connect_3->setEnabled(true);
-    ui->pBtnConnect_on_single_3->setEnabled(true);
+    ui->drop_button->setEnabled(true);
+    ui->update_button->setEnabled(true);
+    ui->input_button->setEnabled(true);
+    ui->scan_button->setEnabled(false);
 }
 
 void HandEye::showImage(int _width, int _height)
 {
+<<<<<<< HEAD
     ui->textBrowser_log->append("请等待图像处理...");
-    enableFunctionButton();
+
+=======
+>>>>>>> 89823a3 (Optimize the use logic of widget)
     //scale size
     int mScaleW = ui->label_gray->width();
     int mScaleH = ui->label_gray->height();
@@ -240,6 +249,8 @@ void HandEye::showImage(int _width, int _height)
     }
 
     judgeAndInputBase(mat, circles);
+
+    enableFunctionButton();
 }
 
 void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_circle)
@@ -282,8 +293,6 @@ void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_ci
     verify_ptr_->setTextLog(batch_text);
 
     cam_points_vecs_.emplace_back(cam_points_vec);
-
-    disableWidget();
 }
 
 void HandEye::showPointsSum()
@@ -295,7 +304,7 @@ void HandEye::showPointsSum()
     ui->textBrowser_log->append("当前总点数为:" + QString::number(points_count));
 }
 
-void HandEye::on_pBtnConnect_on_single_3_clicked()
+void HandEye::on_input_button_clicked()
 {
     std::vector<cv::Point3d> base_points_vec;
     int row_size = ui->tableWidget->rowCount();
@@ -315,15 +324,20 @@ void HandEye::on_pBtnConnect_on_single_3_clicked()
         base_points_vec.emplace_back(cv::Point3d(x, y, z));
 
     }
-        size_t vec_size = base_points_vec.size();
-        cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].resize(vec_size);
-        base_points_vecs_.emplace_back(base_points_vec);
+    size_t vec_size = base_points_vec.size();
+    cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].resize(vec_size);
+    base_points_vecs_.emplace_back(base_points_vec);
 
-        showPointsSum();
-        resetTableWidget();
+    showPointsSum();
+    judgePointsNum();
+    disableFunctionButton();
+<<<<<<< HEAD
+=======
+    resetTableWidget();
+>>>>>>> 89823a3 (Optimize the use logic of widget)
 }
 
-void HandEye::on_pBtnConnect_on_single_4_clicked()
+void HandEye::on_calculate_button_clicked()
 {
     std::vector<cv::Point3d> cam_points_vec;
     std::vector<cv::Point3d> base_points_vec;
@@ -398,7 +412,7 @@ Eigen::Matrix4d HandEye::svd(std::vector<cv::Point3d> _cam_points_vec, std::vect
     return transformation_mat;
 }
 
-void HandEye::on_pBtnConnect_on_connect_2_clicked()
+void HandEye::on_save_button_clicked()
 {
     QFile file(parameters_path_);
 
@@ -465,17 +479,19 @@ void HandEye::on_lineEdit_6_textEdited(const QString &arg1)
     maxRadius_ = arg1.toInt();
 }
 
-void HandEye::on_pBtnConnect_on_connect_3_clicked()
+void HandEye::on_update_button_clicked()
 {
     cv::Mat mat = tmp_mat_.clone();
     auto circles = image_proc_ptr_->getCircle(mat, dp_, minDist_, param1_, param2_, minRadius_, maxRadius_);
     if (circles.empty())
     {
-        ui->textBrowser_log->append("没有找到点，请重新扫图");
+        ui->textBrowser_log->append("没有找到点，请重新调整参数");
         return;
     }
+
     if (!cam_points_vecs_.empty())
         cam_points_vecs_.pop_back();
+
     judgeAndInputBase(mat, circles);
     resetTableWidget();
 }
@@ -508,7 +524,7 @@ bool HandEye::closeInquiry()
 void HandEye::closeEvent(QCloseEvent* event)
 {
     if (closeInquiry())
-        on_pBtnConnect_on_connect_2_clicked();
+        on_save_button_clicked();
     event->accept();
 }
 
@@ -516,22 +532,23 @@ void HandEye::resetTableWidget()
 {
     ui->tableWidget->clear();
     ui->tableWidget->setRowCount(1);
-    enableWidget();
 }
 
-void HandEye::on_pBtnConnect_on_single_5_clicked()
+void HandEye::on_test_button_clicked()
 {
     verify_ptr_->show();
     verify_ptr_->max_row_count_ = cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].size();
 }
 
-void HandEye::on_pBtnConnect_on_connect_4_clicked()
+void HandEye::on_drop_button_clicked()
 {
     if (!cam_points_vecs_.empty())
         cam_points_vecs_.pop_back();
 
     showPointsSum();
-    enableWidget();
+    judgePointsNum();
+    disableFunctionButton();
+    resetTableWidget();
     ui->label_gray->clear();
 }
 
