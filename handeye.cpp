@@ -24,6 +24,11 @@ HandEye::HandEye(QWidget *parent)
                 ui->textBrowser_log->append(text);
             });
 
+    QString path = QCoreApplication::applicationDirPath()+"/config";
+    QDir dir(path);
+    if (!dir.exists())
+        dir.mkdir(path);
+
     parameters_path_ = QCoreApplication::applicationDirPath()+"/config/handeye.json";
     QFile file(parameters_path_);
     if (!file.open(QIODevice::ReadOnly))
