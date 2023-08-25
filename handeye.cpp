@@ -17,8 +17,6 @@ HandEye::HandEye(QWidget *parent)
     connect(sensor_ptr_->call_one_times_ptr_, &CallOneTimes::SignalDataShow,
             this, &HandEye::showImage);
 
-<<<<<<< HEAD
-=======
     connect(sensor_ptr_->call_one_times_ptr_, &CallOneTimes::scanFinishSignal,
             this,
             [this](QString text)
@@ -26,7 +24,6 @@ HandEye::HandEye(QWidget *parent)
                 ui->textBrowser_log->append(text);
             });
 
->>>>>>> 89823a3 (Optimize the use logic of widget)
     parameters_path_ = QCoreApplication::applicationDirPath()+"/config/handeye.json";
     QFile file(parameters_path_);
     if (!file.open(QIODevice::ReadOnly))
@@ -187,11 +184,6 @@ void HandEye::enableFunctionButton()
 
 void HandEye::showImage(int _width, int _height)
 {
-<<<<<<< HEAD
-    ui->textBrowser_log->append("请等待图像处理...");
-
-=======
->>>>>>> 89823a3 (Optimize the use logic of widget)
     //scale size
     int mScaleW = ui->label_gray->width();
     int mScaleH = ui->label_gray->height();
@@ -331,10 +323,7 @@ void HandEye::on_input_button_clicked()
     showPointsSum();
     judgePointsNum();
     disableFunctionButton();
-<<<<<<< HEAD
-=======
     resetTableWidget();
->>>>>>> 89823a3 (Optimize the use logic of widget)
 }
 
 void HandEye::on_calculate_button_clicked()
