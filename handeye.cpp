@@ -190,10 +190,14 @@ void HandEye::enableFunctionButton()
 void HandEye::showImage(int _width, int _height)
 {
     //scale size
-    int mScaleW = ui->label_gray->width();
-    int mScaleH = ui->label_gray->height();
-    int mXscale = int(double(_width) / mScaleW);
-    int mYscale = int(double(_height) / mScaleH);
+//    int mScaleW = ui->label_gray->width();
+//    int mScaleH = ui->label_gray->height();
+//    int mXscale = int(double(_width) / mScaleW);
+//    int mYscale = int(double(_height) / mScaleH);
+    int mYscale = 5;
+    int mXscale = 5;
+    int mScaleH = _height / mYscale;
+    int mScaleW = _width / mXscale;
 
     if (mXscale_ == 0 || mYscale == 0)
     {
@@ -241,7 +245,7 @@ void HandEye::showImage(int _width, int _height)
     if (circles.empty())
     {
         ui->textBrowser_log->append("没有找到点，请重新扫图");
-        ui->label_gray->setPixmap(gray_pixmap);
+        ui->label_gray->setPixmap(gray_pixmap.scaledToHeight(ui->label_gray->height()));
         return;
     }
 
@@ -261,7 +265,7 @@ void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_ci
     }
 
     auto drawed_pixmap = image_proc_ptr_->matToPixmap(_mat);
-    ui->label_gray->setPixmap(drawed_pixmap);
+    ui->label_gray->setPixmap(drawed_pixmap.scaledToHeight(ui->label_gray->height()));
 
     ui->textBrowser_log->append("寻找成功 请按照顺序输入任意数量base的xyz坐标");
     std::vector<cv::Point3d> cam_points_vec;
