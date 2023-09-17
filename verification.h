@@ -33,27 +33,39 @@ class Verification : public QWidget
 public:
     explicit Verification(QWidget *parent = nullptr);
 
-    void setHandEyeMatrix(const Eigen::Matrix4d &_handeye_mat);
+    void setTextLog(const QString &_text);
 
-    void setTextLog(const QString &text);
+    void resetWidget();
 
     ~Verification();
 
     size_t max_row_count_;
-
     Utils* utils_ptr_;
+    void setHandEyeMatrix();
+    Eigen::Matrix4d handeye_mat_;
 
 private slots:
     void on_pushButton_clicked();
 
     void on_pushButton_2_clicked();
 
+    void on_table_matrix_itemChanged(QTableWidgetItem *item);
+
 private:
     void keyPressEvent(QKeyEvent *event) override;
 
-    Eigen::Matrix4d handeye_mat_;
-    std::vector<std::shared_ptr<QTableWidgetItem>> vp_handeye_item_;
-    std::vector<std::shared_ptr<QTableWidgetItem>> vp_error_item_;
+    void handEyeMatItemInit();
+    void addErrorItem(const std::vector<Points> &_error_vec, int _row);
+    void updateHandEyeMatrix();
+
+    int mat_cols_;
+    int mat_rows_;
+    int table_init_num_;
+
+    std::vector<std::unique_ptr<QTableWidgetItem>> vp_handeye_item_;
+    std::vector<std::unique_ptr<QTableWidgetItem>> vp_error_item_;
+    std::vector<std::unique_ptr<QTableWidgetItem>> vp_base_item_;
+    std::vector<std::unique_ptr<QTableWidgetItem>> vp_cam_item_;
 
     Ui::Verification *ui;
 };

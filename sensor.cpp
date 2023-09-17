@@ -423,7 +423,7 @@ void Sensor::ethenetDisconnect()
 
 Sensor::~Sensor()
 {
-    ethenetDisconnect();
+//    ethenetDisconnect();
 }
 
 

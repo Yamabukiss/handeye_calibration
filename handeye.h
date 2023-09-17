@@ -10,6 +10,7 @@
 #include <Eigen/Dense>
 #include <QMessageBox>
 #include <QCloseEvent>
+#include <QTableWidgetItem>
 #include "sensor.h"
 #include "imageproc.h"
 
@@ -24,8 +25,10 @@ class HandEye : public QMainWindow
     Q_OBJECT
 
 public:
-    HandEye(QWidget *parent = nullptr);
+    explicit HandEye(QWidget *parent = nullptr);
     ~HandEye();
+
+    Sensor* sensor_ptr_;
 
 private slots:
     void showImage(int _width, int _height);
@@ -68,6 +71,8 @@ private slots:
 
     void on_drop_button_clicked();
 
+    void on_reset_button_clicked();
+
 private:
 
     void disableWidget();
@@ -80,8 +85,13 @@ private:
 
     void showPointsSum();
 
+    void resetWidget();
+
+    void closeReset();
+
     Eigen::Matrix4d svd(std::vector<cv::Point3d> _cam_points_vec, std::vector<cv::Point3d> _base_points_vec);
 
+    bool init_scan_;
     int dp_;
     int minDist_;
     int param1_;
@@ -90,15 +100,18 @@ private:
     int maxRadius_;
     int mXscale_;
     int mYscale_;
-
-    bool init_scan_;
-    std::vector<std::vector<cv::Point3d>> cam_points_vecs_;
-    std::vector<std::vector<cv::Point3d>> base_points_vecs_;
+    int scale_;
+    int table_init_num_;
     QString parameters_path_;
+
+
     cv::Mat tmp_mat_;
     QImage tmp_height_;
+    std::vector<std::vector<cv::Point3d>> cam_points_vecs_;
+    std::vector<std::vector<cv::Point3d>> base_points_vecs_;
+    std::vector<std::unique_ptr<QTableWidgetItem>> vp_input_item_;
 
-    Sensor* sensor_ptr_;
+
     ImageProc* image_proc_ptr_;
     Verification* verify_ptr_;
     Ui::HandEye *ui;

@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QTableWidget>
 #include <QDoubleValidator>
+#include <QDebug>
 #include "delegate.h"
 
 class Utils : public QObject
@@ -12,7 +13,7 @@ class Utils : public QObject
     Q_OBJECT
 public:
     explicit Utils(QObject *parent = nullptr);
-    void showWarnMsg(QString text);
+    void showWarnMsg(QString _text);
 
     void insertNewRow(QTableWidget* _table_ptr);
 
@@ -20,8 +21,22 @@ public:
 
     bool tableCheck(QTableWidget* _table_ptr);
 
+    void appearTable(QTableWidget* _table_ptr, int _max_row);
+
+    void hiddenTable(QTableWidget* _table_ptr, int _start_row, int _max_row);
+
+    void judgeEnterTable(std::vector<std::unique_ptr<QTableWidgetItem>> &_vp_item, QTableWidget* _table_ptr);
+
+    int judgeAppearNum(QTableWidget* _table_ptr);
+
+    void clearTable(std::vector<std::unique_ptr<QTableWidgetItem>> &_vp_item, QTableWidget* _table_ptr);
+
+    void eraseAllRow(std::vector<std::unique_ptr<QTableWidgetItem>> &_vp_item);
+
+    void tableItemInit(std::vector<std::unique_ptr<QTableWidgetItem>> &_vp_item, QTableWidget* _table_ptr, int _init_num);
+
 private:
-    std::vector<std::shared_ptr<Delegate>> delegate_ptr_vec_;
+    Delegate* delegate_ptr_;
 };
 
 #endif // UTILS_H

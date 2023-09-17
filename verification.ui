@@ -20,6 +20,9 @@
    <string>Form</string>
   </property>
   <widget class="QTableWidget" name="table_matrix">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="geometry">
     <rect>
      <x>70</x>
@@ -39,9 +42,6 @@
      <family>Times New Roman</family>
      <pointsize>10</pointsize>
     </font>
-   </property>
-   <property name="editTriggers">
-    <set>QAbstractItemView::NoEditTriggers</set>
    </property>
    <property name="rowCount">
     <number>4</number>
@@ -74,11 +74,15 @@
     </font>
    </property>
    <property name="rowCount">
-    <number>1</number>
+    <number>5</number>
    </property>
    <property name="columnCount">
     <number>3</number>
    </property>
+   <row/>
+   <row/>
+   <row/>
+   <row/>
    <row/>
    <column/>
    <column/>
@@ -166,11 +170,15 @@
     <set>QAbstractItemView::NoEditTriggers</set>
    </property>
    <property name="rowCount">
-    <number>1</number>
+    <number>5</number>
    </property>
    <property name="columnCount">
     <number>3</number>
    </property>
+   <row/>
+   <row/>
+   <row/>
+   <row/>
    <row/>
    <column/>
    <column/>
@@ -233,11 +241,15 @@
     </font>
    </property>
    <property name="rowCount">
-    <number>1</number>
+    <number>5</number>
    </property>
    <property name="columnCount">
     <number>3</number>
    </property>
+   <row/>
+   <row/>
+   <row/>
+   <row/>
    <row/>
    <column/>
    <column/>

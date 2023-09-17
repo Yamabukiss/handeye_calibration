@@ -5,8 +5,9 @@
 
 HandEye::HandEye(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::HandEye), mXscale_(0), mYscale_(0), init_scan_(true),
-    sensor_ptr_(new Sensor), image_proc_ptr_(new ImageProc), verify_ptr_(new Verification)
+    , sensor_ptr_(new Sensor), init_scan_(true), mXscale_(0), mYscale_(0), scale_(5),
+    table_init_num_(5), image_proc_ptr_(new ImageProc), verify_ptr_(new Verification),
+    ui(new Ui::HandEye)
 {
     ui->setupUi(this);
 
@@ -74,10 +75,10 @@ HandEye::HandEye(QWidget *parent)
     ui->drop_button->setEnabled(false);
     ui->input_button->setEnabled(false);
     ui->calculate_button->setEnabled(false);
-    ui->test_button->setEnabled(false);
     ui->update_button->setEnabled(false);
 
     verify_ptr_->utils_ptr_->setValidator(ui->tableWidget);
+    verify_ptr_->utils_ptr_->tableItemInit(vp_input_item_, ui->tableWidget, table_init_num_);
 }
 
 void HandEye::on_connect_button_clicked()
@@ -94,7 +95,6 @@ void HandEye::on_connect_button_clicked()
     {
         ui->textBrowser_log->append("连接失败");
     }
-
 }
 
 void HandEye::on_scan_button_clicked()
@@ -133,11 +133,11 @@ void HandEye::keyPressEvent(QKeyEvent *event)
         else
         {
             size_t cam_vec_size = cam_points_vecs_[cam_points_vecs_.size() - 1].size();
-            judge = base_table->rowCount() < cam_vec_size;
+            judge = verify_ptr_->utils_ptr_->judgeAppearNum(base_table) < cam_vec_size;
         }
 
         if (judge && (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter))
-            verify_ptr_->utils_ptr_->insertNewRow(base_table);
+            verify_ptr_->utils_ptr_->judgeEnterTable(vp_input_item_, base_table);
 
         else
         {
@@ -162,12 +162,10 @@ void HandEye::judgePointsNum()
     if (count >= 5)
     {
         ui->calculate_button->setEnabled(true);
-        ui->test_button->setEnabled(true);
     }
     else if (count < 5)
     {
         ui->calculate_button->setEnabled(false);
-        ui->test_button->setEnabled(false);
     }
 }
 
@@ -194,8 +192,8 @@ void HandEye::showImage(int _width, int _height)
 //    int mScaleH = ui->label_gray->height();
 //    int mXscale = int(double(_width) / mScaleW);
 //    int mYscale = int(double(_height) / mScaleH);
-    int mYscale = 5;
-    int mXscale = 5;
+    int mYscale = scale_;
+    int mXscale = scale_;
     int mScaleH = _height / mYscale;
     int mScaleW = _width / mXscale;
 
@@ -245,7 +243,7 @@ void HandEye::showImage(int _width, int _height)
     if (circles.empty())
     {
         ui->textBrowser_log->append("没有找到点，请重新扫图");
-        ui->label_gray->setPixmap(gray_pixmap.scaledToHeight(ui->label_gray->height()));
+        ui->label_gray->setPixmap(gray_pixmap.scaled(QSize(ui->label_gray->width(), ui->label_gray->height()), Qt::KeepAspectRatio));
         return;
     }
 
@@ -265,7 +263,7 @@ void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_ci
     }
 
     auto drawed_pixmap = image_proc_ptr_->matToPixmap(_mat);
-    ui->label_gray->setPixmap(drawed_pixmap.scaledToHeight(ui->label_gray->height()));
+    ui->label_gray->setPixmap(drawed_pixmap.scaled(QSize(ui->label_gray->width(), ui->label_gray->height()), Qt::KeepAspectRatio));
 
     ui->textBrowser_log->append("寻找成功 请按照顺序输入任意数量base的xyz坐标");
     std::vector<cv::Point3d> cam_points_vec;
@@ -323,7 +321,6 @@ void HandEye::on_input_button_clicked()
         double y = ui->tableWidget->item(row, 1)->text().toDouble();
         double z = ui->tableWidget->item(row, 2)->text().toDouble();
         base_points_vec.emplace_back(cv::Point3d(x, y, z));
-
     }
     size_t vec_size = base_points_vec.size();
     cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].resize(vec_size);
@@ -347,7 +344,10 @@ void HandEye::on_calculate_button_clicked()
         base_points_vec.insert(base_points_vec.end(), point_vec.begin(), point_vec.end());
 
     auto handeye_mat = svd(cam_points_vec, base_points_vec);
-    verify_ptr_->setHandEyeMatrix(handeye_mat);
+
+    verify_ptr_->handeye_mat_ = handeye_mat;
+    verify_ptr_->setHandEyeMatrix();
+
     QString mat_string;
 
     for (int row = 0; row < 4; ++row)
@@ -523,19 +523,22 @@ void HandEye::closeEvent(QCloseEvent* event)
 {
     if (closeInquiry())
         on_save_button_clicked();
+
+    closeReset();
+    sensor_ptr_->ethenetDisconnect();
+
     event->accept();
 }
 
 void HandEye::resetTableWidget()
 {
-    ui->tableWidget->clear();
-    ui->tableWidget->setRowCount(1);
+    verify_ptr_->utils_ptr_->clearTable(vp_input_item_, ui->tableWidget);
 }
 
 void HandEye::on_test_button_clicked()
 {
     verify_ptr_->show();
-    verify_ptr_->max_row_count_ = cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].size();
+//    verify_ptr_->max_row_count_ = cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].size();
 }
 
 void HandEye::on_drop_button_clicked()
@@ -550,6 +553,49 @@ void HandEye::on_drop_button_clicked()
     ui->label_gray->clear();
 }
 
+void HandEye::resetWidget()
+{
+    ui->textBrowser_log->clear();
+    resetTableWidget();
+    verify_ptr_->resetWidget();
+    disableFunctionButton();
+    ui->calculate_button->setEnabled(false);
+}
+
+void HandEye::on_reset_button_clicked()
+{
+    if (!base_points_vecs_.empty())
+    {
+        resetWidget();
+        base_points_vecs_.clear();
+        cam_points_vecs_.clear();
+    }
+    else if (!cam_points_vecs_.empty())
+    {
+        resetWidget();
+        cam_points_vecs_.clear();
+    }
+    else
+    {
+        verify_ptr_->utils_ptr_->showWarnMsg("您没有进行采样");
+    }
+}
+
+void HandEye::closeReset()
+{
+    if (!base_points_vecs_.empty())
+    {
+        resetWidget();
+        base_points_vecs_.clear();
+        cam_points_vecs_.clear();
+    }
+    else if (!cam_points_vecs_.empty())
+    {
+        resetWidget();
+        cam_points_vecs_.clear();
+    }
+}
+
 HandEye::~HandEye()
 {
     delete ui;
@@ -557,4 +603,3 @@ HandEye::~HandEye()
     delete image_proc_ptr_;
     delete verify_ptr_;
 }
-

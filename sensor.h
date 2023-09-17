@@ -52,7 +52,7 @@ public:
     double dheight_lower_;
     double fscale_;
     QImage height_image_;
-    CallOneTimes* call_one_times_ptr_{};
+    CallOneTimes* call_one_times_ptr_;
 
 private:
 
@@ -65,8 +65,8 @@ private:
     void connectFunc();
 
     int device_id_;
-    std::shared_ptr<unsigned char> gray_batch_ptr_{};
-    std::shared_ptr<unsigned char> height_batch_ptr_{};
+    std::shared_ptr<unsigned char> gray_batch_ptr_;
+    std::shared_ptr<unsigned char> height_batch_ptr_;
 
 signals:
 
