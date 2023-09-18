@@ -6,8 +6,8 @@
 HandEye::HandEye(QWidget *parent)
     : QMainWindow(parent)
     , sensor_ptr_(new Sensor), init_scan_(true), mXscale_(0), mYscale_(0), scale_(5),
-    table_init_num_(5), image_proc_ptr_(new ImageProc), verify_ptr_(new Verification),
-    ui(new Ui::HandEye)
+    table_init_num_(5), image_proc_ptr_(new ImageProc), utils_ptr_(new Utils),
+    verify_ptr_(new Verification(utils_ptr_)), ui(new Ui::HandEye)
 {
     ui->setupUi(this);
 
@@ -77,8 +77,16 @@ HandEye::HandEye(QWidget *parent)
     ui->calculate_button->setEnabled(false);
     ui->update_button->setEnabled(false);
 
-    verify_ptr_->utils_ptr_->setValidator(ui->tableWidget);
-    verify_ptr_->utils_ptr_->tableItemInit(vp_input_item_, ui->tableWidget, table_init_num_);
+    utils_ptr_->setValidator(ui->tableWidget);
+    utils_ptr_->tableItemInit(vp_input_item_, ui->tableWidget, table_init_num_);
+
+    QIntValidator *validator = new QIntValidator(this);
+    ui->lineEdit->setValidator(validator);
+    ui->lineEdit_2->setValidator(validator);
+    ui->lineEdit_3->setValidator(validator);
+    ui->lineEdit_4->setValidator(validator);
+    ui->lineEdit_5->setValidator(validator);
+    ui->lineEdit_6->setValidator(validator);
 }
 
 void HandEye::on_connect_button_clicked()
@@ -133,11 +141,11 @@ void HandEye::keyPressEvent(QKeyEvent *event)
         else
         {
             size_t cam_vec_size = cam_points_vecs_[cam_points_vecs_.size() - 1].size();
-            judge = verify_ptr_->utils_ptr_->judgeAppearNum(base_table) < cam_vec_size;
+            judge = utils_ptr_->judgeAppearNum(base_table) < cam_vec_size;
         }
 
         if (judge && (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter))
-            verify_ptr_->utils_ptr_->judgeEnterTable(vp_input_item_, base_table);
+            utils_ptr_->judgeEnterTable(vp_input_item_, base_table);
 
         else
         {
@@ -306,20 +314,22 @@ void HandEye::showPointsSum()
 void HandEye::on_input_button_clicked()
 {
     std::vector<cv::Point3d> base_points_vec;
-    int row_size = ui->tableWidget->rowCount();
 
-    bool base_check = verify_ptr_->utils_ptr_->tableCheck(ui->tableWidget);
+    bool base_check = utils_ptr_->tableCheck(ui->tableWidget);
     if (!base_check)
     {
-        verify_ptr_->utils_ptr_->showWarnMsg("表格内容不完整，请补充");
+        utils_ptr_->showWarnMsg("表格内容不完整，请补充");
         return;
     }
 
+    int row_size = utils_ptr_->judgeAppearNum(ui->tableWidget);
+
     for (int row = 0; row < row_size; row++)
     {
-        double x = ui->tableWidget->item(row, 0)->text().toDouble();
-        double y = ui->tableWidget->item(row, 1)->text().toDouble();
-        double z = ui->tableWidget->item(row, 2)->text().toDouble();
+        int count = row * 3;
+        double x = vp_input_item_[count]->text().toDouble();
+        double y = vp_input_item_[count + 1]->text().toDouble();
+        double z = vp_input_item_[count + 2]->text().toDouble();
         base_points_vec.emplace_back(cv::Point3d(x, y, z));
     }
     size_t vec_size = base_points_vec.size();
@@ -346,7 +356,8 @@ void HandEye::on_calculate_button_clicked()
     auto handeye_mat = svd(cam_points_vec, base_points_vec);
 
     verify_ptr_->handeye_mat_ = handeye_mat;
-    verify_ptr_->setHandEyeMatrix();
+    verify_ptr_->tmp_handeye_mat_ = handeye_mat;
+    verify_ptr_->setHandEyeMatrix(handeye_mat);
 
     QString mat_string;
 
@@ -412,6 +423,7 @@ Eigen::Matrix4d HandEye::svd(std::vector<cv::Point3d> _cam_points_vec, std::vect
 
 void HandEye::on_save_button_clicked()
 {
+
     QFile file(parameters_path_);
 
     if(!file.open(QIODevice::ReadWrite))
@@ -444,37 +456,54 @@ void HandEye::on_save_button_clicked()
     ui->textBrowser_log->append("参数保存成功");
 }
 
+inline void HandEye::setLineEditText(QLineEdit* line_edit, int value)
+{
+        line_edit->setText(QString::number(value));
+}
+
 void HandEye::on_lineEdit_textEdited(const QString &arg1)
 {
-    dp_ = arg1.toInt();
+    bool ret = utils_ptr_->checkLineEdit(arg1, dp_);
+    if (!ret)
+        setLineEditText(ui->lineEdit, dp_);
 }
 
 
 void HandEye::on_lineEdit_2_textEdited(const QString &arg1)
 {
-    minDist_ = arg1.toInt();
+    bool ret = utils_ptr_->checkLineEdit(arg1, minDist_);
+    if (!ret)
+       setLineEditText(ui->lineEdit_2, minDist_);
 }
 
 void HandEye::on_lineEdit_3_textEdited(const QString &arg1)
 {
-    param1_ = arg1.toInt();
+    bool ret = utils_ptr_->checkLineEdit(arg1, param1_);
+    if (!ret)
+        setLineEditText(ui->lineEdit_3, param1_);
 }
 
 
 void HandEye::on_lineEdit_4_textEdited(const QString &arg1)
 {
-    param2_ = arg1.toInt();
+    bool ret = utils_ptr_->checkLineEdit(arg1, param2_);
+    if (!ret)
+        setLineEditText(ui->lineEdit_4, param2_);
 }
 
 
 void HandEye::on_lineEdit_5_textEdited(const QString &arg1)
 {
-    minRadius_ = arg1.toInt();
+    bool ret = utils_ptr_->checkLineEdit(arg1, minRadius_);
+    if (!ret)
+        setLineEditText(ui->lineEdit_5, minRadius_);
 }
 
 void HandEye::on_lineEdit_6_textEdited(const QString &arg1)
 {
-    maxRadius_ = arg1.toInt();
+    bool ret = utils_ptr_->checkLineEdit(arg1, maxRadius_);
+    if (!ret)
+        setLineEditText(ui->lineEdit_6, maxRadius_);
 }
 
 void HandEye::on_update_button_clicked()
@@ -525,14 +554,14 @@ void HandEye::closeEvent(QCloseEvent* event)
         on_save_button_clicked();
 
     closeReset();
-    sensor_ptr_->ethenetDisconnect();
+//    sensor_ptr_->ethenetDisconnect();
 
     event->accept();
 }
 
 void HandEye::resetTableWidget()
 {
-    verify_ptr_->utils_ptr_->clearTable(vp_input_item_, ui->tableWidget);
+    utils_ptr_->clearTable(vp_input_item_, ui->tableWidget);
 }
 
 void HandEye::on_test_button_clicked()
@@ -577,7 +606,7 @@ void HandEye::on_reset_button_clicked()
     }
     else
     {
-        verify_ptr_->utils_ptr_->showWarnMsg("您没有进行采样");
+        utils_ptr_->showWarnMsg("您没有进行采样");
     }
 }
 
@@ -602,4 +631,5 @@ HandEye::~HandEye()
     delete sensor_ptr_;
     delete image_proc_ptr_;
     delete verify_ptr_;
+    delete utils_ptr_;
 }

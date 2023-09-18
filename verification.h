@@ -31,18 +31,20 @@ class Verification : public QWidget
     Q_OBJECT
 
 public:
-    explicit Verification(QWidget *parent = nullptr);
+    explicit Verification(Utils* utils_ptr, QWidget *parent = nullptr);
 
     void setTextLog(const QString &_text);
 
     void resetWidget();
 
+    void setHandEyeMatrix(const Eigen::Matrix4d &mat);
+
     ~Verification();
 
     size_t max_row_count_;
-    Utils* utils_ptr_;
-    void setHandEyeMatrix();
     Eigen::Matrix4d handeye_mat_;
+    Eigen::Matrix4d tmp_handeye_mat_;
+    Utils* utils_ptr_;
 
 private slots:
     void on_pushButton_clicked();
@@ -50,6 +52,8 @@ private slots:
     void on_pushButton_2_clicked();
 
     void on_table_matrix_itemChanged(QTableWidgetItem *item);
+
+    void on_pushButton_3_clicked();
 
 private:
     void keyPressEvent(QKeyEvent *event) override;

@@ -87,9 +87,9 @@ void Utils::hiddenTable(QTableWidget* _table_ptr, int _start_row, int _max_row)
 int Utils::judgeAppearNum(QTableWidget* _table_ptr)
 {
     int current_rows = _table_ptr->rowCount();
-    int appear_rows = 0;
+    int appear_rows = 1;
 
-    for (int row = 0; row < current_rows; row++)
+    for (int row = 1; row < current_rows; row++)
         if (!_table_ptr->item(row, 0)->text().isEmpty())
             appear_rows++;
     return appear_rows;
@@ -165,6 +165,20 @@ void Utils::tableItemInit(std::vector<std::unique_ptr<QTableWidgetItem>> &_vp_it
     clearTable(_vp_item, _table_ptr);
 }
 
+bool Utils::checkLineEdit(const QString &value, int &param)
+{
+    if (value == "")
+        return false;
+    else
+    {
+        param = value.toInt();
+        return true;
+    }
+}
 
+Utils::~Utils()
+{
+    delete delegate_ptr_;
+}
 
 

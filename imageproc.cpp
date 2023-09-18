@@ -73,6 +73,5 @@ std::vector<cv::Vec3d> ImageProc::getCircle(cv::Mat image, int _dp, int _minDist
         cv::Vec3d tmp_circle(circle[0], circle[1], circle[2]);
         tmp_circles.push_back(tmp_circle);
     }
-
     return tmp_circles;
 }

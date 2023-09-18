@@ -13,6 +13,7 @@ class Utils : public QObject
     Q_OBJECT
 public:
     explicit Utils(QObject *parent = nullptr);
+    ~Utils();
     void showWarnMsg(QString _text);
 
     void insertNewRow(QTableWidget* _table_ptr);
@@ -34,6 +35,8 @@ public:
     void eraseAllRow(std::vector<std::unique_ptr<QTableWidgetItem>> &_vp_item);
 
     void tableItemInit(std::vector<std::unique_ptr<QTableWidgetItem>> &_vp_item, QTableWidget* _table_ptr, int _init_num);
+
+    bool checkLineEdit(const QString &value, int &param);
 
 private:
     Delegate* delegate_ptr_;

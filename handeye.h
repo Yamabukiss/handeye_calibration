@@ -11,8 +11,10 @@
 #include <QMessageBox>
 #include <QCloseEvent>
 #include <QTableWidgetItem>
+#include <QIntValidator>
 #include "sensor.h"
 #include "imageproc.h"
+#include "utils.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class HandEye; }
@@ -89,6 +91,8 @@ private:
 
     void closeReset();
 
+    inline void setLineEditText(QLineEdit* line_edit, int value);
+
     Eigen::Matrix4d svd(std::vector<cv::Point3d> _cam_points_vec, std::vector<cv::Point3d> _base_points_vec);
 
     bool init_scan_;
@@ -113,6 +117,7 @@ private:
 
 
     ImageProc* image_proc_ptr_;
+    Utils* utils_ptr_;
     Verification* verify_ptr_;
     Ui::HandEye *ui;
 };

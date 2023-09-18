@@ -2,9 +2,10 @@
 #include "verification.h"
 #include "ui_verification.h"
 
-Verification::Verification(QWidget *parent) :
+Verification::Verification(Utils* utils_ptr, QWidget *parent) :
     QWidget(parent),
-    utils_ptr_(new Utils), handeye_mat_(Eigen::Matrix4d::Zero()), table_init_num_(5), ui(new Ui::Verification)
+    handeye_mat_(Eigen::Matrix4d::Zero()), tmp_handeye_mat_(Eigen::Matrix4d::Zero()), utils_ptr_(utils_ptr),
+    table_init_num_(5), ui(new Ui::Verification)
 {
     ui->setupUi(this);
 
@@ -37,7 +38,7 @@ void Verification::handEyeMatItemInit()
     for (int row = 0; row < mat_rows_; row++)
         for (int col = 0; col < mat_cols_; col++)
         {
-            QTableWidgetItem* item = new QTableWidgetItem("1");
+            QTableWidgetItem* item = new QTableWidgetItem("");
             ui->table_matrix->setItem(row, col, item);
             vp_handeye_item_.emplace_back(item);
         }
@@ -191,13 +192,13 @@ void Verification::on_table_matrix_itemChanged(QTableWidgetItem *item)
     handeye_mat_(item->row(), item->column()) = item->text().toDouble();
 }
 
-void Verification::setHandEyeMatrix()
+void Verification::setHandEyeMatrix(const Eigen::Matrix4d &mat)
 {
     auto item_iter = vp_handeye_item_.begin();
     for (int row = 0; row < mat_rows_; row++)
         for (int col = 0; col < mat_cols_; col++)
         {
-            QString text = QString::number(handeye_mat_(row, col));
+            QString text = QString::number(mat(row, col));
             item_iter->get()->setText(text);
 
             if (item_iter != vp_handeye_item_.end())
@@ -220,8 +221,22 @@ void Verification::resetWidget()
     ui->textBrowser_log->clear();
 }
 
+void Verification::on_pushButton_3_clicked()
+{
+    if (tmp_handeye_mat_.isZero())
+    {
+        utils_ptr_->showWarnMsg("未进行标定");
+        return;
+    }
+    else
+    {
+        setHandEyeMatrix(tmp_handeye_mat_);
+    }
+}
+
 Verification::~Verification()
 {
     delete ui;
-    delete utils_ptr_;
 }
+
+
