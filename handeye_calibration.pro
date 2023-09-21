@@ -16,7 +16,9 @@ SOURCES += \
     sensor.cpp \
     CallOneTimes.cpp \
     utils.cpp \
-    verification.cpp
+    verification.cpp \
+    searcher.cpp \
+    solver.cpp
 
 HEADERS += \
     delegate.h \
@@ -25,7 +27,9 @@ HEADERS += \
     sensor.h \
     CallOneTimes.h \
     utils.h \
-    verification.h
+    verification.h \
+    searcher.h \
+    solver.h
 
 FORMS += \
     handeye.ui \

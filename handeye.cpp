@@ -7,7 +7,7 @@ HandEye::HandEye(QWidget *parent)
     : QMainWindow(parent)
     , sensor_ptr_(new Sensor), init_scan_(true), mXscale_(0), mYscale_(0), scale_(5),
     table_init_num_(5), image_proc_ptr_(new ImageProc), utils_ptr_(new Utils),
-    verify_ptr_(new Verification(utils_ptr_)), ui(new Ui::HandEye)
+    verify_ptr_(new Verification(utils_ptr_)), solver_ptr_(new Solver(3)), ui(new Ui::HandEye)
 {
     ui->setupUi(this);
 
@@ -353,7 +353,7 @@ void HandEye::on_calculate_button_clicked()
     for (const auto &point_vec : base_points_vecs_)
         base_points_vec.insert(base_points_vec.end(), point_vec.begin(), point_vec.end());
 
-    auto handeye_mat = svd(cam_points_vec, base_points_vec);
+    auto handeye_mat = solver_ptr_->svd(cam_points_vec, base_points_vec);
 
     verify_ptr_->handeye_mat_ = handeye_mat;
     verify_ptr_->tmp_handeye_mat_ = handeye_mat;
@@ -379,46 +379,6 @@ void HandEye::on_calculate_button_clicked()
     }
 
     ui->textBrowser_log->append("手眼标定矩阵为:" + mat_string);
-}
-
-Eigen::Matrix4d HandEye::svd(std::vector<cv::Point3d> _cam_points_vec, std::vector<cv::Point3d> _base_points_vec)
-{
-    Eigen::MatrixXd A(4, _cam_points_vec.size());
-    Eigen::MatrixXd B(4, _base_points_vec.size());
-
-    for (size_t i = 0; i < _cam_points_vec.size(); i++)
-    {
-        A.col(i) << _cam_points_vec[i].x, _cam_points_vec[i].y, _cam_points_vec[i].z, 1.0;
-        B.col(i) << _base_points_vec[i].x, _base_points_vec[i].y, _base_points_vec[i].z, 1.0;
-    }
-
-    Eigen::Vector4d mA = A.rowwise().mean();
-    Eigen::Vector4d mB = B.rowwise().mean();
-
-    A = A.colwise() - mA;
-    B = B.colwise() - mB;
-
-    Eigen::Matrix4d H = A * B.transpose();
-
-    Eigen::JacobiSVD<Eigen::Matrix4d> svd(H, Eigen::ComputeFullU | Eigen::ComputeFullV);
-    Eigen::Matrix4d U = svd.matrixU();
-    Eigen::Matrix4d V = svd.matrixV();
-
-    Eigen::Matrix4d R = V * U.transpose();
-
-    double det_R = R.determinant();
-    if (det_R < 0) {
-        V.col(3) *= -1;
-        R = V * U.transpose();
-    }
-
-    Eigen::Vector4d t = mB - R * mA;
-
-    Eigen::Matrix4d transformation_mat = Eigen::Matrix4d::Identity();
-    transformation_mat.block(0, 0, 3, 3) = R.block(0, 0, 3, 3);
-    transformation_mat.block(0, 3, 3, 1) = t.block(0, 0, 3, 1);
-
-    return transformation_mat;
 }
 
 void HandEye::on_save_button_clicked()
@@ -632,4 +592,5 @@ HandEye::~HandEye()
     delete image_proc_ptr_;
     delete verify_ptr_;
     delete utils_ptr_;
+    delete solver_ptr_;
 }

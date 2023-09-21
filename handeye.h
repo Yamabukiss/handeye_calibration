@@ -15,6 +15,7 @@
 #include "sensor.h"
 #include "imageproc.h"
 #include "utils.h"
+#include "solver.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class HandEye; }
@@ -93,8 +94,6 @@ private:
 
     inline void setLineEditText(QLineEdit* line_edit, int value);
 
-    Eigen::Matrix4d svd(std::vector<cv::Point3d> _cam_points_vec, std::vector<cv::Point3d> _base_points_vec);
-
     bool init_scan_;
     int dp_;
     int minDist_;
@@ -119,6 +118,7 @@ private:
     ImageProc* image_proc_ptr_;
     Utils* utils_ptr_;
     Verification* verify_ptr_;
+    Solver* solver_ptr_;
     Ui::HandEye *ui;
 };
 #endif // HANDEYE_H
