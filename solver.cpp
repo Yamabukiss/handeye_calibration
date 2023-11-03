@@ -71,7 +71,8 @@ bool Solver::estimationOptimize(
         std::cout << "cost: " << cost << std::endl;
         std::cout << "last_cost: " << last_cost << std::endl;
 
-        if ((iteration > 0 && (abs(std::round(cost * precision_)) >= abs(std::round(last_cost * precision_)))) || abs(gradient_w * w_searcher.step_) < 0.01)
+        if ((iteration > 0 && (abs(std::round(cost * precision_)) >= abs(std::round(last_cost * precision_)))) ||
+            abs(gradient_w * w_searcher.step_) < 0.01)
         {
             std::cout << "----------------" << std::endl;
             std::cout << "error: " << cost << std::endl;

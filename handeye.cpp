@@ -25,6 +25,13 @@ HandEye::HandEye(QWidget *parent)
                 ui->textBrowser_log->append(text);
             });
 
+    connect(sensor_ptr_, &Sensor::postBatchNum,
+            this,
+            [this](int batch_num)
+            {
+                ui->batch_label->setText(QString::number(batch_num));
+            });
+
     QString path = QCoreApplication::applicationDirPath()+"/config";
     QDir dir(path);
     if (!dir.exists())
@@ -126,6 +133,9 @@ void HandEye::on_scan_button_clicked()
     {
         ui->textBrowser_log->append("执行扫图成功");
     }
+
+    std::thread thread_batch_display(&Sensor::getBatchNum, sensor_ptr_, 4400);
+    thread_batch_display.detach();
 }
 
 void HandEye::keyPressEvent(QKeyEvent *event)
@@ -526,6 +536,7 @@ void HandEye::resetTableWidget()
 
 void HandEye::on_test_button_clicked()
 {
+    verify_ptr_->setWindowTitle("精度测试");
     verify_ptr_->show();
 //    verify_ptr_->max_row_count_ = cam_points_vecs_[cam_points_vecs_.size() - static_cast<size_t>(1)].size();
 }

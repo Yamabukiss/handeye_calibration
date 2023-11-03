@@ -12,6 +12,7 @@
 #include <QCloseEvent>
 #include <QTableWidgetItem>
 #include <QIntValidator>
+#include <thread>
 #include "sensor.h"
 #include "imageproc.h"
 #include "utils.h"

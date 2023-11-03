@@ -10,6 +10,7 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <memory>
+#include <chrono>
 #include "CallOneTimes.h"
 
 class Sensor : public QObject
@@ -29,6 +30,8 @@ public:
     void InitConfigBeforeDisConnect();
 
     void ethenetDisconnect();
+
+    void getBatchNum(int max_batch);
 
     QImage BatchDataShow(int *_BatchData,
                        double max_height,
@@ -69,6 +72,7 @@ private:
     std::shared_ptr<unsigned char> height_batch_ptr_;
 
 signals:
+    void postBatchNum(int batch_num);
 
 };
 

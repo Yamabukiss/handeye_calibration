@@ -7,6 +7,17 @@ Sensor::Sensor(QObject *parent)
     call_one_times_ptr_->device_id_ = device_id_;
 }
 
+void Sensor::getBatchNum(int max_batch)
+{
+    int batch_count = 0;
+    while (batch_count < max_batch)
+    {
+        batch_count = SR7IF_ProfilePointCount(device_id_, NULL);
+        emit postBatchNum(batch_count);
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+}
+
 int Sensor::getEncoderParameters()
 {
     int type = 0x10;
@@ -66,6 +77,7 @@ bool Sensor::setEncoderParameters()
         return false;
     else
         return true;
+
 }
 
 void Sensor::getHeightUpperLower(double& _upper, double& _lower)
