@@ -327,7 +327,7 @@ QImage Sensor::BatchDataShow(int *_BatchData,
     }
 
     //转成图像显示
-    QImage heightImage = QImage(BatchImage, imgW, imgH, QImage::Format_Indexed8).scaled(QSize(_scaleW, _scaleH));
+    QImage heightImage = QImage(BatchImage, imgW, imgH, QImage::Format_Indexed8);
 
 
     QVector<QRgb> grayTable;
@@ -399,7 +399,7 @@ QImage Sensor::GrayDataShow(unsigned char* _grayData,
     }
 
     //转成图像显示
-    QImage grayImage = QImage(BatchImage, imgW, imgH, QImage::Format_Indexed8).scaled(QSize(_scaleW, _scaleH));
+    QImage grayImage = QImage(BatchImage, imgW, imgH, QImage::Format_Indexed8);
 
     QVector<QRgb> grayTable;
 

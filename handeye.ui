@@ -36,9 +36,9 @@
     <property name="geometry">
      <rect>
       <x>810</x>
-      <y>170</y>
+      <y>190</y>
       <width>381</width>
-      <height>191</height>
+      <height>171</height>
      </rect>
     </property>
    </widget>
@@ -514,40 +514,65 @@
      <string>重置</string>
     </property>
    </widget>
-   <widget class="QLabel" name="batch_label">
-    <property name="enabled">
-     <bool>false</bool>
-    </property>
-    <property name="geometry">
-     <rect>
-      <x>960</x>
-      <y>90</y>
-      <width>91</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>0</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignCenter</set>
-    </property>
-   </widget>
-   <widget class="QLabel" name="batch_label_title">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
       <x>800</x>
-      <y>90</y>
-      <width>141</width>
-      <height>51</height>
+      <y>140</y>
+      <width>231</width>
+      <height>28</height>
      </rect>
     </property>
-    <property name="text">
-     <string>当前批处理行数:</string>
+    <layout class="QHBoxLayout" name="horizontalLayout_10">
+     <item>
+      <widget class="QLabel" name="cut_titile">
+       <property name="text">
+        <string>剪切尺寸:</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="cut_edit"/>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>110</y>
+      <width>153</width>
+      <height>20</height>
+     </rect>
     </property>
-    <property name="alignment">
-     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_11">
+     <item>
+      <widget class="QLabel" name="batch_label_title">
+       <property name="text">
+        <string>当前批处理行数:</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="batch_label">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>0</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

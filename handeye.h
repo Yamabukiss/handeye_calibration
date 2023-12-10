@@ -13,6 +13,7 @@
 #include <QTableWidgetItem>
 #include <QIntValidator>
 #include <thread>
+#include <math.h>
 #include "sensor.h"
 #include "imageproc.h"
 #include "utils.h"
@@ -95,6 +96,8 @@ private:
 
     inline void setLineEditText(QLineEdit* line_edit, int value);
 
+    void cutQImage(QImage &image);
+
     bool init_scan_;
     int dp_;
     int minDist_;
@@ -106,6 +109,8 @@ private:
     int mYscale_;
     int scale_;
     int table_init_num_;
+    int width_size_;
+    int batch_size_;
     QString parameters_path_;
 
 

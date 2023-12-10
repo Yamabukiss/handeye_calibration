@@ -5,9 +5,10 @@
 
 HandEye::HandEye(QWidget *parent)
     : QMainWindow(parent)
-    , sensor_ptr_(new Sensor), init_scan_(true), mXscale_(0), mYscale_(0), scale_(5),
-    table_init_num_(5), image_proc_ptr_(new ImageProc), utils_ptr_(new Utils),
-    verify_ptr_(new Verification(utils_ptr_)), solver_ptr_(new Solver(3)), ui(new Ui::HandEye)
+    , sensor_ptr_(new Sensor), init_scan_(true), mXscale_(3), mYscale_(3), scale_(1),
+    table_init_num_(5), width_size_(3200), batch_size_(6000), image_proc_ptr_(new ImageProc),
+    utils_ptr_(new Utils), verify_ptr_(new Verification(utils_ptr_)), solver_ptr_(new Solver(3)),
+    ui(new Ui::HandEye)
 {
     ui->setupUi(this);
 
@@ -88,12 +89,16 @@ HandEye::HandEye(QWidget *parent)
     utils_ptr_->tableItemInit(vp_input_item_, ui->tableWidget, table_init_num_);
 
     QIntValidator *validator = new QIntValidator(this);
+    QIntValidator *cut_validator = new QIntValidator(0, ceil(batch_size_ * 0.175), this);
     ui->lineEdit->setValidator(validator);
     ui->lineEdit_2->setValidator(validator);
     ui->lineEdit_3->setValidator(validator);
     ui->lineEdit_4->setValidator(validator);
     ui->lineEdit_5->setValidator(validator);
     ui->lineEdit_6->setValidator(validator);
+    ui->cut_edit->setValidator(cut_validator);
+    int init_size = floor(batch_size_ * 0.175);
+    ui->cut_edit->setText(QString::number(init_size));
 }
 
 void HandEye::on_connect_button_clicked()
@@ -134,8 +139,15 @@ void HandEye::on_scan_button_clicked()
         ui->textBrowser_log->append("执行扫图成功");
     }
 
-    std::thread thread_batch_display(&Sensor::getBatchNum, sensor_ptr_, 4400);
+    std::thread thread_batch_display(&Sensor::getBatchNum, sensor_ptr_, batch_size_);
     thread_batch_display.detach();
+}
+
+void HandEye::cutQImage(QImage &image)
+{
+    int cut_vertical_size = ceil(ui->cut_edit->text().toInt() / 0.175);
+    QRect mask(0, 0, width_size_, cut_vertical_size);
+    image = image.copy(mask);
 }
 
 void HandEye::keyPressEvent(QKeyEvent *event)
@@ -249,6 +261,11 @@ void HandEye::showImage(int _width, int _height)
         return;
     }
 
+    cutQImage(gray_image);
+    cutQImage(height_image);
+
+    gray_image = gray_image.scaled(gray_image.width() / mXscale_, gray_image.height() / mYscale_);
+
     auto gray_pixmap = QPixmap::fromImage(gray_image);
 
     cv::Mat mat = image_proc_ptr_->pixmapToCvMat(gray_pixmap);
@@ -276,7 +293,7 @@ void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_ci
     {
         cv::Point center(cvRound(_circle[i][0]), cvRound(_circle[i][1]));
         int radius = cvRound(_circle[i][2]);
-        cv::circle(_mat, center, radius, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
+        cv::circle(_mat, center, radius, cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
         cv::putText(_mat, std::to_string(i + 1), center + cv::Point(10, 10), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
     }
 
