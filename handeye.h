@@ -56,17 +56,11 @@ private slots:
 
     void on_lineEdit_3_textEdited(const QString &arg1);
 
-    void on_lineEdit_4_textEdited(const QString &arg1);
-
-    void on_lineEdit_5_textEdited(const QString &arg1);
-
-    void on_lineEdit_6_textEdited(const QString &arg1);
-
     void on_update_button_clicked();
 
     void closeEvent(QCloseEvent* event) override;
 
-    void judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_circle);
+    void judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Point> &_centers);
 
     void resetTableWidget();
 
@@ -99,15 +93,9 @@ private:
     void cutQImage(QImage &image);
 
     bool init_scan_;
-    int dp_;
-    int minDist_;
-    int param1_;
-    int param2_;
-    int minRadius_;
-    int maxRadius_;
-    int mXscale_;
-    int mYscale_;
-    int scale_;
+    int gradient_;
+    int area_thresh_;
+    int stucture_size_;
     int table_init_num_;
     int width_size_;
     int batch_size_;

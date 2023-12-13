@@ -5,8 +5,8 @@
 
 HandEye::HandEye(QWidget *parent)
     : QMainWindow(parent)
-    , sensor_ptr_(new Sensor), init_scan_(true), mXscale_(3), mYscale_(3), scale_(1),
-    table_init_num_(5), width_size_(3200), batch_size_(6000), image_proc_ptr_(new ImageProc),
+    , sensor_ptr_(new Sensor), init_scan_(true), table_init_num_(5),
+    width_size_(3200), image_proc_ptr_(new ImageProc),
     utils_ptr_(new Utils), verify_ptr_(new Verification(utils_ptr_)), solver_ptr_(new Solver(3)),
     ui(new Ui::HandEye)
 {
@@ -38,17 +38,37 @@ HandEye::HandEye(QWidget *parent)
     if (!dir.exists())
         dir.mkdir(path);
 
+    QString camera_param_path = QCoreApplication::applicationDirPath()+"/config/camera_param.json";
+    QFile camera_file(camera_param_path);
+    if (!camera_file.open(QIODevice::ReadOnly))
+    {
+        QMessageBox::critical(this, "错误", "相机参数文件不存在，无法正常使用", QMessageBox::Ok);
+        std::exit(-1);
+    }
+
+    else
+    {
+        QByteArray json_data = camera_file.readAll();
+        QJsonDocument json_document = QJsonDocument::fromJson(json_data);
+        QJsonObject json_object = json_document.object();
+        int batch_size = json_object.take("batch_size").toVariant().toString().toInt();
+        int trigger_times = json_object.take("trigger_times").toVariant().toString().toInt();
+        double pulse_equivalent = json_object.take("pulse_equivalent").toVariant().toString().toDouble();
+        camera_file.close();
+
+        batch_size_ = batch_size;
+        double y_interval = double(trigger_times) * pulse_equivalent;
+        sensor_ptr_->call_one_times_ptr_->mYinterVal = y_interval;
+    }
+
     parameters_path_ = QCoreApplication::applicationDirPath()+"/config/handeye.json";
     QFile file(parameters_path_);
     if (!file.open(QIODevice::ReadOnly))
     {
         ui->textBrowser_log->append("参数文件读取失败");
-        dp_ = 0;
-        minDist_= 0;
-        param1_ = 0;
-        param2_ = 0;
-        minRadius_ = 0;
-        maxRadius_ = 0;
+        gradient_ = 0;
+        area_thresh_ = 0;
+        stucture_size_ = 0;
     }
 
     else
@@ -56,27 +76,18 @@ HandEye::HandEye(QWidget *parent)
         QByteArray json_data = file.readAll();
         QJsonDocument json_document = QJsonDocument::fromJson(json_data);
         QJsonObject json_object = json_document.object();
-        int dp = json_object.take("dp").toVariant().toString().toInt();
-        int minDist = json_object.take("minDist").toVariant().toString().toInt();
-        int param1 = json_object.take("param1").toVariant().toString().toInt();
-        int param2 = json_object.take("param2").toVariant().toString().toInt();
-        int minRadius = json_object.take("minRadius").toVariant().toString().toInt();
-        int maxRadius = json_object.take("maxRadius").toVariant().toString().toInt();
+        int gradient = json_object.take("gradient").toVariant().toString().toInt();
+        int area_thresh = json_object.take("area_thresh").toVariant().toString().toInt();
+        int stucture_size = json_object.take("stucture_size").toVariant().toString().toInt();
         file.close();
 
-        ui->lineEdit->setText(QString::number(dp));
-        ui->lineEdit_2->setText(QString::number(minDist));
-        ui->lineEdit_3->setText(QString::number(param1));
-        ui->lineEdit_4->setText(QString::number(param2));
-        ui->lineEdit_5->setText(QString::number(minRadius));
-        ui->lineEdit_6->setText(QString::number(maxRadius));
+        ui->lineEdit->setText(QString::number(gradient));
+        ui->lineEdit_2->setText(QString::number(area_thresh));
+        ui->lineEdit_3->setText(QString::number(stucture_size));
 
-        dp_ = dp;
-        minDist_= minDist;
-        param1_ = param1;
-        param2_ = param2;
-        minRadius_ = minRadius;
-        maxRadius_ = maxRadius;
+        gradient_ = gradient;
+        area_thresh_ = area_thresh;
+        stucture_size_ = stucture_size;
     }
 
     ui->scan_button->setEnabled(false);
@@ -89,15 +100,12 @@ HandEye::HandEye(QWidget *parent)
     utils_ptr_->tableItemInit(vp_input_item_, ui->tableWidget, table_init_num_);
 
     QIntValidator *validator = new QIntValidator(this);
-    QIntValidator *cut_validator = new QIntValidator(0, ceil(batch_size_ * 0.175), this);
+    QIntValidator *cut_validator = new QIntValidator(0, ceil(batch_size_ * sensor_ptr_->call_one_times_ptr_->mYinterVal), this);
     ui->lineEdit->setValidator(validator);
     ui->lineEdit_2->setValidator(validator);
     ui->lineEdit_3->setValidator(validator);
-    ui->lineEdit_4->setValidator(validator);
-    ui->lineEdit_5->setValidator(validator);
-    ui->lineEdit_6->setValidator(validator);
     ui->cut_edit->setValidator(cut_validator);
-    int init_size = floor(batch_size_ * 0.175);
+    int init_size = floor(batch_size_ * sensor_ptr_->call_one_times_ptr_->mYinterVal);
     ui->cut_edit->setText(QString::number(init_size));
 }
 
@@ -145,7 +153,7 @@ void HandEye::on_scan_button_clicked()
 
 void HandEye::cutQImage(QImage &image)
 {
-    int cut_vertical_size = ceil(ui->cut_edit->text().toInt() / 0.175);
+    int cut_vertical_size = ceil(ui->cut_edit->text().toInt() / sensor_ptr_->call_one_times_ptr_->mYinterVal);
     QRect mask(0, 0, width_size_, cut_vertical_size);
     image = image.copy(mask);
 }
@@ -218,28 +226,16 @@ void HandEye::enableFunctionButton()
 void HandEye::showImage(int _width, int _height)
 {
     //scale size
-//    int mScaleW = ui->label_gray->width();
-//    int mScaleH = ui->label_gray->height();
-//    int mXscale = int(double(_width) / mScaleW);
-//    int mYscale = int(double(_height) / mScaleH);
-    int mYscale = scale_;
-    int mXscale = scale_;
-    int mScaleH = _height / mYscale;
-    int mScaleW = _width / mXscale;
-
-    if (mXscale_ == 0 || mYscale == 0)
-    {
-        mXscale_ = mXscale;
-        mYscale_ = mYscale;
-    }
+    int mScaleW = _width;
+    int mScaleH = _height;
 
     int mCamId = 0;
 
     auto gray_image = sensor_ptr_->GrayDataShow(sensor_ptr_->call_one_times_ptr_->getIntensityData(mCamId),
                                                 _width,
                                                 _height,
-                                                mXscale,
-                                                mYscale,
+                                                1,
+                                                1,
                                                 mScaleW,
                                                 mScaleH);
 
@@ -250,8 +246,8 @@ void HandEye::showImage(int _width, int _height)
                   255,
                   _width,
                   _height,
-                  mXscale,
-                  mYscale,
+                  1,
+                  1,
                   mScaleW,
                   mScaleH);
 
@@ -264,8 +260,6 @@ void HandEye::showImage(int _width, int _height)
     cutQImage(gray_image);
     cutQImage(height_image);
 
-    gray_image = gray_image.scaled(gray_image.width() / mXscale_, gray_image.height() / mYscale_);
-
     auto gray_pixmap = QPixmap::fromImage(gray_image);
 
     cv::Mat mat = image_proc_ptr_->pixmapToCvMat(gray_pixmap);
@@ -273,7 +267,7 @@ void HandEye::showImage(int _width, int _height)
     tmp_mat_ = mat.clone();
     tmp_height_ = height_image;
 
-    auto circles = image_proc_ptr_->getCircle(mat, dp_, minDist_, param1_, param2_, minRadius_, maxRadius_);
+    auto circles = image_proc_ptr_->getCircle(mat, gradient_, area_thresh_, stucture_size_);
 
     if (circles.empty())
     {
@@ -287,14 +281,12 @@ void HandEye::showImage(int _width, int _height)
     enableFunctionButton();
 }
 
-void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_circle)
+void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Point> &_centers)
 {
-    for (size_t i = 0; i < _circle.size(); i++)
+    for (size_t i = 0; i < _centers.size(); i++)
     {
-        cv::Point center(cvRound(_circle[i][0]), cvRound(_circle[i][1]));
-        int radius = cvRound(_circle[i][2]);
-        cv::circle(_mat, center, radius, cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
-        cv::putText(_mat, std::to_string(i + 1), center + cv::Point(10, 10), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
+        cv::circle(_mat, _centers[i], 10, cv::Scalar(0, 0, 255), cv::FILLED, cv::LINE_AA);
+        cv::putText(_mat, std::to_string(i + 1), _centers[i] + cv::Point(10, 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 0, 255), 8);
     }
 
     auto drawed_pixmap = image_proc_ptr_->matToPixmap(_mat);
@@ -304,16 +296,16 @@ void HandEye::judgeAndInputBase(cv::Mat &_mat, const std::vector<cv::Vec3d> &_ci
     std::vector<cv::Point3d> cam_points_vec;
 
     QString batch_text;
-    for (size_t i = 0; i < _circle.size(); i++)
+    for (size_t i = 0; i < _centers.size(); i++)
     {
-        auto corner = _circle[i];
-        double x = corner[0];
-        double y = corner[1];
+        cv::Point center = _centers[i];
+        double x = center.x;
+        double y = center.y;
         unsigned char gray_value = tmp_height_.pixel(x, y);
         double z = static_cast<double>(gray_value) / sensor_ptr_->fscale_ + sensor_ptr_->dheight_lower_;
 
-        x = x * mXscale_ * sensor_ptr_->call_one_times_ptr_->mXinterVal;
-        y = y * mYscale_ * sensor_ptr_->call_one_times_ptr_->mYinterVal;
+        x = x * sensor_ptr_->call_one_times_ptr_->mXinterVal;
+        y = y * sensor_ptr_->call_one_times_ptr_->mYinterVal;
 
         cv::Point3d point_3d(x, y, z);
 
@@ -422,12 +414,8 @@ void HandEye::on_save_button_clicked()
     QJsonDocument json_document(QJsonDocument::fromJson(file.readAll()));
     QJsonObject json_obj = json_document.object();
 
-    json_obj["dp"] = ui->lineEdit->text();
-    json_obj["minDist"] = ui->lineEdit_2->text();
-    json_obj["param1"] = ui->lineEdit_3->text();
-    json_obj["param2"] = ui->lineEdit_4->text();
-    json_obj["minRadius"] = ui->lineEdit_5->text();
-    json_obj["maxRadius"] = ui->lineEdit_6->text();
+    json_obj["gradient"] = ui->lineEdit->text();
+    json_obj["area_thresh"] = ui->lineEdit_2->text();
 
     json_document.setObject(json_obj);
     QByteArray jsonData = json_document.toJson();
@@ -450,53 +438,30 @@ inline void HandEye::setLineEditText(QLineEdit* line_edit, int value)
 
 void HandEye::on_lineEdit_textEdited(const QString &arg1)
 {
-    bool ret = utils_ptr_->checkLineEdit(arg1, dp_);
+    bool ret = utils_ptr_->checkLineEdit(arg1, gradient_);
     if (!ret)
-        setLineEditText(ui->lineEdit, dp_);
+        setLineEditText(ui->lineEdit, gradient_);
 }
 
 
 void HandEye::on_lineEdit_2_textEdited(const QString &arg1)
 {
-    bool ret = utils_ptr_->checkLineEdit(arg1, minDist_);
+    bool ret = utils_ptr_->checkLineEdit(arg1, area_thresh_);
     if (!ret)
-       setLineEditText(ui->lineEdit_2, minDist_);
+       setLineEditText(ui->lineEdit_2, area_thresh_);
 }
 
 void HandEye::on_lineEdit_3_textEdited(const QString &arg1)
 {
-    bool ret = utils_ptr_->checkLineEdit(arg1, param1_);
+    bool ret = utils_ptr_->checkLineEdit(arg1, stucture_size_);
     if (!ret)
-        setLineEditText(ui->lineEdit_3, param1_);
-}
-
-
-void HandEye::on_lineEdit_4_textEdited(const QString &arg1)
-{
-    bool ret = utils_ptr_->checkLineEdit(arg1, param2_);
-    if (!ret)
-        setLineEditText(ui->lineEdit_4, param2_);
-}
-
-
-void HandEye::on_lineEdit_5_textEdited(const QString &arg1)
-{
-    bool ret = utils_ptr_->checkLineEdit(arg1, minRadius_);
-    if (!ret)
-        setLineEditText(ui->lineEdit_5, minRadius_);
-}
-
-void HandEye::on_lineEdit_6_textEdited(const QString &arg1)
-{
-    bool ret = utils_ptr_->checkLineEdit(arg1, maxRadius_);
-    if (!ret)
-        setLineEditText(ui->lineEdit_6, maxRadius_);
+       setLineEditText(ui->lineEdit_3, stucture_size_);
 }
 
 void HandEye::on_update_button_clicked()
 {
     cv::Mat mat = tmp_mat_.clone();
-    auto circles = image_proc_ptr_->getCircle(mat, dp_, minDist_, param1_, param2_, minRadius_, maxRadius_);
+    auto circles = image_proc_ptr_->getCircle(mat, gradient_, area_thresh_, stucture_size_);
     if (circles.empty())
     {
         ui->textBrowser_log->append("没有找到点，请重新调整参数");

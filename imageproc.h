@@ -20,8 +20,7 @@ public:
 
     QPixmap matToPixmap(const cv::Mat& mat);
 
-    std::vector<cv::Vec3d> getCircle(cv::Mat image, int _dp, int _minDist, int _param1,
-                              int _param2, int _minRadius, int _maxRadius);
+    std::vector<cv::Point> getCircle(cv::Mat image, int _gradient, int _area_thresh, int _struct_size);
 
 signals:
 };

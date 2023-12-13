@@ -56,22 +56,37 @@ void ImageProc::refineCorner(const cv::Mat &image, std::vector<cv::Point2f> &cor
     cv::find4QuadCornerSubpix(tmp_image, corners_vec, cv::Size(5, 5));
 }
 
-std::vector<cv::Vec3d> ImageProc::getCircle(cv::Mat image, int _dp, int _minDist, int _param1,
-                          int _param2, int _minRadius, int _maxRadius)
+std::vector<cv::Point> ImageProc::getCircle(cv::Mat image, int _gradient, int _area_thresh, int _stucture_size)
 {
-    std::vector<cv::Vec3f> circles;
+    std::vector<cv::Point> centers;
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<std::vector<cv::Point>> hulls;
+    std::vector<cv::Vec4i> tmp_stuff;
     cv::Mat gray = cv::Mat::zeros(image.rows, image.cols, CV_8U);
+    cv::Mat edge = cv::Mat::zeros(image.rows, image.cols, CV_8U);
 
     cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+    cv::medianBlur(gray, gray, _stucture_size * 2 + 1);
+    cv::Canny(gray, edge, int(_gradient / 2), _gradient);
+    cv::findContours(edge, contours, tmp_stuff, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-    cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT, _dp, _minDist, _param1, _param2, _minRadius, _maxRadius);
-
-    std::vector<cv::Vec3d> tmp_circles;
-
-    for (const cv::Vec3f& circle : circles)
+    for (const auto &contour : contours)
     {
-        cv::Vec3d tmp_circle(circle[0], circle[1], circle[2]);
-        tmp_circles.push_back(tmp_circle);
+        double contour_area = cv::contourArea(contour);
+        if (contour_area < double(_area_thresh))
+            continue;
+
+        std::vector<cv::Point> hull;
+        cv::convexHull(contour, hull, true);
+        auto moment = cv::moments(hull);
+        if (moment.m00 != 0)
+        {
+            int cx = static_cast<int>(moment.m10 / moment.m00);
+            int cy = static_cast<int>(moment.m01 / moment.m00);
+            centers.emplace_back(cv::Point(cx, cy));
+        }
+        cv::polylines(image, hull, true, cv::Scalar(0, 0, 255), 8);
     }
-    return tmp_circles;
+
+    return centers;
 }

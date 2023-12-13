@@ -46,8 +46,6 @@ void CallOneTimes::VariableInit()
     mCurBatchPt = 0;
     mBatchPoint = 0;
     mBatchWidth = 0;
-    mXinterVal = 0;
-    mYinterVal = 0.175;
 }
 
 void CallOneTimes::DataMemoryInit(int mProW)

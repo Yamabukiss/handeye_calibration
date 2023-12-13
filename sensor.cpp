@@ -4,6 +4,7 @@ Sensor::Sensor(QObject *parent)
     : QObject{parent}, fscale_(0), device_id_(0)
 {
     call_one_times_ptr_ = new CallOneTimes();
+    call_one_times_ptr_->VariableInit();
     call_one_times_ptr_->device_id_ = device_id_;
 }
 
@@ -174,7 +175,6 @@ void Sensor::connectFunc()
         setEncoderParameters();
 
     // initialize
-    call_one_times_ptr_->VariableInit();
     call_one_times_ptr_->setDeviceId(device_id_);
     call_one_times_ptr_->DataMemoryInit(batch_width);
 }

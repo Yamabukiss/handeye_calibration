@@ -13,8 +13,8 @@ int Solver::searchDimension(
     int num_points)
 {
     auto tmp_mat = dimension_mat * cam_points_mat;
-    auto estimate_cam_mat = tmp_mat.block(0, 0, 3, num_points);
-    auto error_mat = (base_points_mat - estimate_cam_mat).array().square() / 2;
+    auto estimate_base_mat = tmp_mat.block(0, 0, 3, num_points);
+    auto error_mat = (base_points_mat - estimate_base_mat).array().square() / 2;
     auto tmp_vec = error_mat.rowwise().sum();
     auto error_sum_vec = tmp_vec.head(2);
 
@@ -56,6 +56,9 @@ bool Solver::estimationOptimize(
 
         result_cost = cost / num_points;
 
+        if (result_cost < 0.5)
+            return false;
+
         double &w = dimension_mat(dimension, 3);
 
         double gradient_w = 0;
@@ -68,36 +71,18 @@ bool Solver::estimationOptimize(
 
         w -= gradient_w * w_searcher.step_;
 
-        std::cout << "cost: " << cost << std::endl;
-        std::cout << "last_cost: " << last_cost << std::endl;
-
-        if ((iteration > 0 && (abs(std::round(cost * precision_)) >= abs(std::round(last_cost * precision_)))) ||
-            abs(gradient_w * w_searcher.step_) < 0.01)
+        if (abs(gradient_w * w_searcher.step_) < 1e-2 ||
+            (iteration > 0 && (abs(std::round(cost * precision_)) >= abs(std::round(last_cost * precision_))))) // quit condition
         {
-            std::cout << "----------------" << std::endl;
-            std::cout << "error: " << cost << std::endl;
-            std::cout << "avg_error: " << result_cost << std::endl;
-            std::cout << "dimension: " << dimension << std::endl;
-            std::cout << "point1: " << (dimension_mat * cam_points_vec[0]) << std::endl;
-            std::cout << "point2: " << (dimension_mat * cam_points_vec[1]) << std::endl;
 
             if (std::isnan(cost) || std::isinf(cost))
-            {
-                std::cout << dimension << std::endl;
                 return false;
-            }
             else
                 break;
         }
 
         last_cost = cost;
     }
-    std::cout << "------iteration_end----------" << std::endl;
-    std::cout << "error: " << cost << std::endl;
-    std::cout << "avg_error: " << result_cost << std::endl;
-    std::cout << "dimension: " << dimension_mat.row(0) << std::endl;
-    std::cout << "point1: " << (dimension_mat * cam_points_vec[0]) << std::endl;
-    std::cout << "point2: " << (dimension_mat * cam_points_vec[1]) << std::endl;
 
     if (result_cost < 0.5)
         return true;
@@ -160,6 +145,5 @@ Eigen::Matrix4d Solver::svd(std::vector<cv::Point3d> _cam_points_vec, std::vecto
 
     return transformation_mat;
 }
-
 
 Solver::~Solver()  = default;
