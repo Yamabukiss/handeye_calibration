@@ -416,6 +416,7 @@ void HandEye::on_save_button_clicked()
 
     json_obj["gradient"] = ui->lineEdit->text();
     json_obj["area_thresh"] = ui->lineEdit_2->text();
+    json_obj["stucture_size"] = ui->lineEdit_3->text();
 
     json_document.setObject(json_obj);
     QByteArray jsonData = json_document.toJson();

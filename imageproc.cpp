@@ -66,8 +66,18 @@ std::vector<cv::Point> ImageProc::getCircle(cv::Mat image, int _gradient, int _a
     cv::Mat edge = cv::Mat::zeros(image.rows, image.cols, CV_8U);
 
     cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+
+    /*
+     * Modified by yamabuki 2024-12-4
     cv::medianBlur(gray, gray, _stucture_size * 2 + 1);
     cv::Canny(gray, edge, int(_gradient / 2), _gradient);
+    cv::findContours(edge, contours, tmp_stuff, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    */
+
+    cv::threshold(gray, edge, _gradient, 255, cv::THRESH_BINARY);
+
+    cv::Mat kernel = cv::Mat::ones(_stucture_size * 2 + 1, _stucture_size * 2 + 1, CV_8U);
+    cv::morphologyEx(edge, edge, cv::MORPH_DILATE, kernel, cv::Point(-1, -1), 1);
     cv::findContours(edge, contours, tmp_stuff, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
     for (const auto &contour : contours)
